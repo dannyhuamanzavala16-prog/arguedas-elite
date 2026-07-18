@@ -13,9 +13,23 @@ export class DocentesService extends FirestoreCollectionService<Docente> {
   }
 
   async crear(data: Omit<Docente, 'codigo' | 'createdAt'>): Promise<void> {
-    const suffix = Date.now().toString().slice(-6);
-    const codigo = `#DOC-2025-${suffix}`;
-    const docId = `DOC-2025-${suffix}`;
+    const list = this.docentes();
+    let nextNum = 1;
+    if (list.length > 0) {
+      const numbers = list
+        .map((d) => {
+          const parts = d.codigo.split('-');
+          const last = parts[parts.length - 1];
+          return parseInt(last, 10);
+        })
+        .filter((num) => !isNaN(num));
+      if (numbers.length > 0) {
+        nextNum = Math.max(...numbers) + 1;
+      }
+    }
+    const padded = String(nextNum).padStart(3, '0');
+    const codigo = `#DOC-2025-${padded}`;
+    const docId = `DOC-2025-${padded}`;
     await setDoc(doc(this.firestore, 'docentes', docId), {
       ...data,
       codigo,

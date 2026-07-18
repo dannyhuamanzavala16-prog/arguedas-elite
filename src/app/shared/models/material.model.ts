@@ -8,4 +8,6 @@ export interface Material {
   icono: string;
   colorClase: string;
   fecha: string;
+  url?: string;
+  storagePath?: string;
 }

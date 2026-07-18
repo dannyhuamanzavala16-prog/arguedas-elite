@@ -15,9 +15,23 @@ export class EstudiantesService extends FirestoreCollectionService<Estudiante> {
 
   /** Usa `codigo` sin `#` como doc ID para poder actualizar/eliminar por código */
   async crear(est: Omit<Estudiante, 'codigo' | 'createdAt'>): Promise<void> {
-    const suffix = Date.now().toString().slice(-6);
-    const codigo = `#EA-2025-${suffix}`;
-    const docId = `EA-2025-${suffix}`;
+    const list = this.estudiantes();
+    let nextNum = 1;
+    if (list.length > 0) {
+      const numbers = list
+        .map((e) => {
+          const parts = e.codigo.split('-');
+          const last = parts[parts.length - 1];
+          return parseInt(last, 10);
+        })
+        .filter((num) => !isNaN(num));
+      if (numbers.length > 0) {
+        nextNum = Math.max(...numbers) + 1;
+      }
+    }
+    const padded = String(nextNum).padStart(3, '0');
+    const codigo = `#EA-2025-${padded}`;
+    const docId = `EA-2025-${padded}`;
     await setDoc(doc(this.firestore, 'estudiantes', docId), {
       ...est,
       codigo,
