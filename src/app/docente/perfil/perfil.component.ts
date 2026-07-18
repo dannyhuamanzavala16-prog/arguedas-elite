@@ -26,12 +26,8 @@ import { ToastService } from '../../shared/components/toast/toast.service';
       <div class="grid grid-cols-1 lg:grid-cols-3 gap-gutter">
         <!-- Datos Personales -->
         <div class="lg:col-span-2 bg-surface-container-lowest rounded-xl border border-outline-variant/10 overflow-hidden">
-          <div class="px-md py-sm border-b border-outline-variant/10 flex justify-between items-center bg-surface-container-low">
+          <div class="px-md py-sm border-b border-outline-variant/10 bg-surface-container-low">
             <h3 class="font-headline-sm text-headline-sm text-primary">Datos Personales</h3>
-            <button class="flex items-center px-md py-sm text-primary border border-primary rounded-lg hover:bg-primary-fixed transition-all"
-                    (click)="showEditProfile = true">
-              <span class="font-label-md text-label-md">Editar Perfil</span>
-            </button>
           </div>
           <div class="p-md">
             <div class="grid grid-cols-1 md:grid-cols-2 gap-y-base gap-x-lg">
@@ -45,11 +41,15 @@ import { ToastService } from '../../shared/components/toast/toast.service';
               </div>
               <div class="border-b border-surface-container py-base">
                 <p class="font-label-sm text-label-sm text-on-surface-variant uppercase mb-xs">Teléfono de Contacto</p>
-                <p class="font-body-md text-body-md font-semibold">+51 912 345 678</p>
+                <p class="font-body-md text-body-md font-semibold">{{ telefonoDefault }}</p>
               </div>
               <div class="border-b border-surface-container py-base">
                 <p class="font-label-sm text-label-sm text-on-surface-variant uppercase mb-xs">Especialización</p>
-                <p class="font-body-md text-body-md font-semibold">Matemáticas Avanzadas</p>
+                <p class="font-body-md text-body-md font-semibold">{{ especializacionDefault }}</p>
+              </div>
+              <div class="border-b border-surface-container py-base">
+                <p class="font-label-sm text-label-sm text-on-surface-variant uppercase mb-xs">Fecha de Nacimiento</p>
+                <p class="font-body-md text-body-md font-semibold">{{ fechaNacimientoDefault }}</p>
               </div>
               <div class="border-b border-surface-container py-base">
                 <p class="font-label-sm text-label-sm text-on-surface-variant uppercase mb-xs">Rol</p>
@@ -67,7 +67,7 @@ import { ToastService } from '../../shared/components/toast/toast.service';
         <div class="bg-surface-container-lowest rounded-xl border border-outline-variant/10 p-md space-y-md">
           <h3 class="font-label-md text-label-md text-on-surface-variant uppercase tracking-wider">Acciones</h3>
           <button class="w-full flex items-center gap-3 p-sm border border-outline/20 rounded-lg hover:bg-surface-container-low transition-colors text-left"
-                  (click)="showEditProfile = true">
+                  (click)="openEditProfile()">
             <span class="material-symbols-outlined text-primary">edit</span>
             <div>
               <p class="font-label-md text-label-md text-on-surface">Editar Perfil</p>
@@ -112,6 +112,24 @@ import { ToastService } from '../../shared/components/toast/toast.service';
           <label class="font-label-sm text-label-sm text-on-surface-variant block">Correo electrónico</label>
           <input type="email" [(ngModel)]="epEmail" name="epEmail" required
                  class="w-full bg-surface-container-low border border-outline-variant rounded-lg py-2.5 px-3 font-body-md text-body-md focus:border-primary focus:bg-white transition-all" />
+        </div>
+        <div class="space-y-1">
+          <label class="font-label-sm text-label-sm text-on-surface-variant block">Teléfono de Contacto</label>
+          <input type="tel" [(ngModel)]="epTelefono" name="epTelefono"
+                 class="w-full bg-surface-container-low border border-outline-variant rounded-lg py-2.5 px-3 font-body-md text-body-md focus:border-primary focus:bg-white transition-all"
+                 placeholder="+51 999 999 999" />
+        </div>
+        <div class="space-y-1">
+          <label class="font-label-sm text-label-sm text-on-surface-variant block">Especialización</label>
+          <input type="text" [(ngModel)]="epEspecializacion" name="epEspecializacion"
+                 class="w-full bg-surface-container-low border border-outline-variant rounded-lg py-2.5 px-3 font-body-md text-body-md focus:border-primary focus:bg-white transition-all"
+                 placeholder="Ej. Matemáticas Avanzadas" />
+        </div>
+        <div class="space-y-1">
+          <label class="font-label-sm text-label-sm text-on-surface-variant block">Fecha de Nacimiento</label>
+          <input type="text" [(ngModel)]="epFechaNacimiento" name="epFechaNacimiento"
+                 class="w-full bg-surface-container-low border border-outline-variant rounded-lg py-2.5 px-3 font-body-md text-body-md focus:border-primary focus:bg-white transition-all"
+                 placeholder="15 de Marzo, 1985" />
         </div>
         <div class="flex justify-end gap-2 pt-sm border-t border-outline/10">
           <button type="button" class="border border-outline/20 px-md py-2.5 rounded-lg font-label-md text-label-md hover:bg-surface-container transition-colors"
@@ -184,11 +202,18 @@ export class PerfilComponent {
   protected authService = inject(AuthService);
   private readonly toast = inject(ToastService);
 
+  readonly telefonoDefault = '+51 912 345 678';
+  readonly especializacionDefault = 'Matemáticas Avanzadas';
+  readonly fechaNacimientoDefault = '15 de Marzo, 1985';
+
   showEditProfile = false;
   showChangePassword = false;
 
   epNombre = '';
   epEmail = '';
+  epTelefono = '';
+  epEspecializacion = '';
+  epFechaNacimiento = '';
   epFeedback = '';
   epSuccess = false;
 
@@ -211,13 +236,23 @@ export class PerfilComponent {
     return user ? `${user}@arguedas.edu.pe` : 'docente@arguedas.edu.pe';
   }
 
+  openEditProfile(): void {
+    this.epNombre = this.displayName;
+    this.epEmail = this.email;
+    this.epTelefono = this.telefonoDefault;
+    this.epEspecializacion = this.especializacionDefault;
+    this.epFechaNacimiento = this.fechaNacimientoDefault;
+    this.epFeedback = '';
+    this.showEditProfile = true;
+  }
+
   closeEditProfile(): void {
     this.showEditProfile = false;
     this.epFeedback = '';
   }
 
   handleEditProfile(): void {
-    if (!this.epNombre || !this.epEmail) {
+    if (!this.epNombre || !this.epEmail || !this.epTelefono || !this.epEspecializacion || !this.epFechaNacimiento) {
       this.epFeedback = 'Todos los campos son obligatorios.';
       this.epSuccess = false;
       return;

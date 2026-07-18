@@ -88,40 +88,38 @@ type SortMode = 'recientes' | 'nombre' | 'tamano';
 
     <!-- Upload/Edit Modal -->
     <app-modal [isOpen]="showModal" (close)="closeModal()">
-      <div class="bg-surface-container-lowest w-full max-w-md rounded-2xl shadow-xl overflow-hidden">
-        <div class="p-md bg-primary text-on-primary flex justify-between items-center">
-          <h3 class="font-headline-sm text-headline-sm">{{ isEditing ? 'Editar material' : 'Subir nuevo material' }}</h3>
-          <button class="material-symbols-outlined hover:rotate-90 transition-transform" (click)="closeModal()">close</button>
+      <div class="p-md bg-primary text-on-primary flex justify-between items-center">
+        <h3 class="font-headline-sm text-headline-sm">{{ isEditing ? 'Editar material' : 'Subir nuevo material' }}</h3>
+        <button class="material-symbols-outlined hover:rotate-90 transition-transform" (click)="closeModal()">close</button>
+      </div>
+      <div class="p-md space-y-md">
+        <div class="border-2 border-dashed border-outline-variant rounded-xl p-lg flex flex-col items-center gap-3 bg-surface-container-low">
+          <span class="material-symbols-outlined text-4xl text-outline">cloud_upload</span>
+          <p class="text-body-md font-body-md text-center">
+            Arrastra tus archivos aquí o <span class="text-primary font-bold cursor-pointer">selecciona</span>
+          </p>
+          <p class="text-xs text-outline">PDF, DOCX, ZIP (Máx. 50MB)</p>
         </div>
-        <div class="p-md space-y-md">
-          <div class="border-2 border-dashed border-outline-variant rounded-xl p-lg flex flex-col items-center gap-3 bg-surface-container-low">
-            <span class="material-symbols-outlined text-4xl text-outline">cloud_upload</span>
-            <p class="text-body-md font-body-md text-center">
-              Arrastra tus archivos aquí o <span class="text-primary font-bold cursor-pointer">selecciona</span>
-            </p>
-            <p class="text-xs text-outline">PDF, DOCX, ZIP (Máx. 50MB)</p>
-          </div>
-          <div class="space-y-base">
-            <label class="font-label-md text-label-md text-on-surface-variant">Nombre del Material</label>
-            <input type="text" [(ngModel)]="formNombre" name="formNombre"
-                   class="w-full bg-surface-container border-none rounded-lg focus:ring-2 focus:ring-primary/20 outline-none p-3 text-body-md"
-                   placeholder="Ej. Guía de Lectura 04" />
-          </div>
-          <div class="space-y-base">
-            <label class="font-label-md text-label-md text-on-surface-variant">Categoría</label>
-            <select [(ngModel)]="formCategoria" name="formCategoria"
-                    class="w-full bg-surface-container border-none rounded-lg focus:ring-2 focus:ring-primary/20 outline-none p-3 text-body-md">
-              @for (cat of service.categorias(); track cat) {
-                <option [value]="cat">{{ cat }}</option>
-              }
-            </select>
-          </div>
-          <div class="flex gap-base justify-end pt-md">
-            <button class="px-md py-sm rounded-lg font-label-md text-primary border border-primary hover:bg-primary/5 transition-colors"
-                    (click)="closeModal()">Cancelar</button>
-            <button class="px-md py-sm rounded-lg font-label-md bg-primary text-on-primary shadow-md hover:bg-primary/90 transition-all"
-                    (click)="submitUpload()">Subir Archivo</button>
-          </div>
+        <div class="space-y-base">
+          <label class="font-label-md text-label-md text-on-surface-variant">Nombre del Material</label>
+          <input type="text" [(ngModel)]="formNombre" name="formNombre"
+                 class="w-full bg-surface-container border-none rounded-lg focus:ring-2 focus:ring-primary/20 outline-none p-3 text-body-md"
+                 placeholder="Ej. Guía de Lectura 04" />
+        </div>
+        <div class="space-y-base">
+          <label class="font-label-md text-label-md text-on-surface-variant">Categoría</label>
+          <select [(ngModel)]="formCategoria" name="formCategoria"
+                  class="w-full bg-surface-container border-none rounded-lg focus:ring-2 focus:ring-primary/20 outline-none p-3 text-body-md">
+            @for (cat of service.categorias(); track cat) {
+              <option [value]="cat">{{ cat }}</option>
+            }
+          </select>
+        </div>
+        <div class="flex gap-base justify-end pt-md">
+          <button class="px-md py-sm rounded-lg font-label-md text-primary border border-primary hover:bg-primary/5 transition-colors"
+                  (click)="closeModal()">Cancelar</button>
+          <button class="px-md py-sm rounded-lg font-label-md bg-primary text-on-primary shadow-md hover:bg-primary/90 transition-all"
+                  (click)="submitUpload()">Subir Archivo</button>
         </div>
       </div>
     </app-modal>

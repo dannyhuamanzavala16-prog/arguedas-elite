@@ -1,61 +1,38 @@
 import { Component, computed, inject } from '@angular/core';
 import { FormsModule } from '@angular/forms';
 import { AsistenciaService } from '../services/asistencia.service';
-import { ModalComponent } from '../../shared/components/modal/modal.component';
-import { ToastService } from '../../shared/components/toast/toast.service';
 
 @Component({
   selector: 'app-asistencia',
   standalone: true,
-  imports: [FormsModule, ModalComponent],
+  imports: [FormsModule],
   template: `
     <div class="p-md md:p-lg max-w-container-max mx-auto w-full flex-1">
-      <!-- Header -->
+      <!-- Header Actions -->
       <div class="flex flex-col md:flex-row md:items-end justify-between gap-md mb-lg">
         <div>
           <h1 class="font-headline-lg text-headline-lg text-primary tracking-tight">Registro de Asistencia</h1>
         </div>
         <div class="flex gap-sm">
           <button class="px-md py-sm bg-primary text-on-primary font-label-md text-label-md rounded-lg hover:bg-primary/90 transition-all shadow-md flex items-center gap-xs"
-                  (click)="guardar()" [disabled]="isSaving">
+                  (click)="guardar()" [disabled]="isSaving" id="saveBtn">
             @if (!isSaving) {
-              <span class="material-symbols-outlined text-[18px]">save</span>
+              <span class="material-symbols-outlined text-[18px]" data-icon="save">save</span>
             } @else {
-              <span class="material-symbols-outlined text-[18px] animate-spin">sync</span>
+              <span class="material-symbols-outlined text-[18px] animate-spin" data-icon="sync">sync</span>
             }
             {{ isSaving ? 'Guardando...' : 'Guardar Asistencia' }}
           </button>
         </div>
       </div>
 
-      <!-- Stats Bar -->
-      @if (stats(); as s) {
-        <div class="grid grid-cols-3 gap-gutter mb-lg">
-          <div class="bg-surface-container-lowest rounded-xl shadow-sm border border-outline-variant/10 p-md text-center">
-            <span class="material-symbols-outlined text-tertiary block mb-1">check_circle</span>
-            <p class="font-headline-lg text-headline-lg text-tertiary">{{ s.presentes }}</p>
-            <p class="font-label-sm text-label-sm text-on-surface-variant uppercase">Presentes</p>
-          </div>
-          <div class="bg-surface-container-lowest rounded-xl shadow-sm border border-outline-variant/10 p-md text-center">
-            <span class="material-symbols-outlined text-error block mb-1">cancel</span>
-            <p class="font-headline-lg text-headline-lg text-error">{{ s.ausentes }}</p>
-            <p class="font-label-sm text-label-sm text-on-surface-variant uppercase">Ausentes</p>
-          </div>
-          <div class="bg-surface-container-lowest rounded-xl shadow-sm border border-outline-variant/10 p-md text-center">
-            <span class="material-symbols-outlined text-primary block mb-1">trending_up</span>
-            <p class="font-headline-lg text-headline-lg text-primary">{{ s.porcentaje }}%</p>
-            <p class="font-label-sm text-label-sm text-on-surface-variant uppercase">Asistencia</p>
-          </div>
-        </div>
-      }
-
       <!-- Configuration -->
-      <div class="bg-surface-container-lowest rounded-xl shadow-md border border-outline-variant/10 p-md mb-md flex flex-col md:flex-row gap-md">
+      <div class="bg-surface-container-lowest rounded-xl shadow-md border border-outline-variant/10 p-md mb-md flex flex-col md:flex-row gap-md flex-wrap" id="selection-area">
         <div class="w-full mb-xs">
           <h2 class="font-label-md text-label-md text-primary uppercase tracking-wider">Configuración de Clase</h2>
         </div>
         <div class="flex-1">
-          <label class="block font-label-sm text-label-sm text-on-surface-variant uppercase tracking-wider mb-xs">Curso</label>
+          <label class="block font-label-sm text-label-sm text-on-surface-variant uppercase tracking-wider mb-xs">Seleccionar Curso</label>
           <div class="relative">
             <select [ngModel]="service.curso()" (ngModelChange)="service.actualizarCurso($event)"
                     class="w-full px-md py-sm rounded-lg border border-outline text-body-sm focus:border-primary focus:ring-2 focus:ring-primary/20 outline-none appearance-none bg-surface-bright">
@@ -65,7 +42,7 @@ import { ToastService } from '../../shared/components/toast/toast.service';
           </div>
         </div>
         <div class="w-full md:w-48">
-          <label class="block font-label-sm text-label-sm text-on-surface-variant uppercase tracking-wider mb-xs">Grupo</label>
+          <label class="block font-label-sm text-label-sm text-on-surface-variant uppercase tracking-wider mb-xs">Seleccionar Grupo</label>
           <div class="relative">
             <select [ngModel]="service.grupo()" (ngModelChange)="service.actualizarGrupo($event)"
                     class="w-full px-md py-sm rounded-lg border border-outline text-body-sm focus:border-primary focus:ring-2 focus:ring-primary/20 outline-none appearance-none bg-surface-bright">
@@ -77,26 +54,14 @@ import { ToastService } from '../../shared/components/toast/toast.service';
       </div>
 
       <!-- Attendance Table -->
-      <div class="bg-surface-container-lowest rounded-xl shadow-md border border-outline-variant/10 overflow-hidden">
-        <!-- Search & Actions -->
+      <div class="bg-surface-container-lowest rounded-xl shadow-md border border-outline-variant/10 overflow-hidden" id="attendance-sheet">
+        <!-- Search -->
         <div class="p-md border-b border-outline-variant/10 flex flex-col sm:flex-row gap-md justify-between bg-surface-bright">
           <div class="relative max-w-md w-full">
-            <span class="material-symbols-outlined absolute left-sm top-1/2 -translate-y-1/2 text-on-surface-variant">search</span>
+            <span class="material-symbols-outlined absolute left-sm top-1/2 -translate-y-1/2 text-on-surface-variant" data-icon="search">search</span>
             <input type="text" [(ngModel)]="searchQuery"
                    class="w-full pl-xl pr-md py-sm rounded-lg border border-outline text-body-sm focus:border-primary focus:ring-2 focus:ring-primary/20 outline-none transition-all"
-                   placeholder="Buscar estudiante por nombre o ID..." />
-          </div>
-          <div class="flex gap-sm">
-            <button class="px-sm py-sm rounded-lg border border-outline text-body-sm font-label-sm text-on-surface hover:bg-surface-container-low transition-all flex items-center gap-xs"
-                    (click)="service.marcarTodos(true)">
-              <span class="material-symbols-outlined text-[18px] text-tertiary">how_to_reg</span>
-              Marcar todos
-            </button>
-            <button class="px-sm py-sm rounded-lg border border-outline text-body-sm font-label-sm text-on-surface hover:bg-surface-container-low transition-all flex items-center gap-xs"
-                    (click)="service.marcarTodos(false)">
-              <span class="material-symbols-outlined text-[18px] text-error">person_remove</span>
-              Desmarcar todos
-            </button>
+                   placeholder="Buscar estudiante por nombre o ID..." id="searchInput" />
           </div>
         </div>
 
@@ -106,27 +71,27 @@ import { ToastService } from '../../shared/components/toast/toast.service';
             <thead>
               <tr class="bg-surface-container border-b border-outline-variant/20">
                 <th class="px-md py-sm font-label-sm text-label-sm uppercase text-on-surface-variant tracking-wider">Estudiante</th>
-                <th class="px-md py-sm font-label-sm text-label-sm uppercase text-on-surface-variant tracking-wider">ID</th>
+                <th class="px-md py-sm font-label-sm text-label-sm uppercase text-on-surface-variant tracking-wider">ID Académico</th>
                 <th class="px-md py-sm font-label-sm text-label-sm uppercase text-on-surface-variant tracking-wider text-center">Presente</th>
                 <th class="px-md py-sm font-label-sm text-label-sm uppercase text-on-surface-variant tracking-wider text-center">Ausente</th>
                 <th class="px-md py-sm font-label-sm text-label-sm uppercase text-on-surface-variant tracking-wider">Notas</th>
               </tr>
             </thead>
-            <tbody>
+            <tbody id="studentList">
               @for (est of paginated(); track est.id) {
                 <tr class="border-b border-outline-variant/10 hover:bg-surface-container-low transition-colors group">
                   <td class="px-md py-sm">
                     <div class="flex items-center gap-md">
-                      <div class="w-12 h-12 rounded-full bg-primary-container/30 flex items-center justify-center text-on-primary-container text-label-md font-bold shadow-sm">
-                        {{ getInitials(est.nombre) }}
-                      </div>
+                      <img src="placeholder" class="w-12 h-12 rounded-full object-cover shadow-sm">
                       <span class="font-label-md text-label-md text-on-surface group-hover:text-primary transition-colors">{{ est.nombre }}</span>
                     </div>
                   </td>
-                  <td class="px-md py-sm font-label-sm text-label-sm text-on-surface-variant font-mono">{{ est.id }}</td>
+                  <td class="px-md py-sm font-label-sm text-label-sm text-on-surface-variant font-mono">
+                    {{ est.id }}
+                  </td>
                   <td class="px-md py-sm text-center">
                     <label class="inline-flex items-center cursor-pointer">
-                      <input type="radio" [name]="'att-' + est.id" value="present"
+                      <input type="radio" [name]="'attendance-' + $index" value="present"
                              [checked]="est.presente"
                              (change)="service.marcarEstudiante(est.id, true)"
                              class="attendance-radio w-5 h-5 text-tertiary focus:ring-tertiary border-outline" />
@@ -134,22 +99,17 @@ import { ToastService } from '../../shared/components/toast/toast.service';
                   </td>
                   <td class="px-md py-sm text-center">
                     <label class="inline-flex items-center cursor-pointer">
-                      <input type="radio" [name]="'att-' + est.id" value="absent"
+                      <input type="radio" [name]="'attendance-' + $index" value="absent"
                              [checked]="!est.presente"
                              (change)="service.marcarEstudiante(est.id, false)"
                              class="attendance-radio w-5 h-5 text-error focus:ring-error border-outline" />
                     </label>
                   </td>
                   <td class="px-md py-sm">
-                    <button type="button" (click)="openNoteModal(est)"
-                            [class.text-primary]="est.nota"
-                            [class.font-medium]="est.nota"
-                            [class.text-on-surface-variant]="!est.nota"
-                            [class.italic]="!est.nota"
-                            class="flex items-center gap-xs text-body-sm hover:text-primary transition-all">
-                      <span class="material-symbols-outlined text-[18px]">{{ est.nota ? 'note' : 'edit_note' }}</span>
-                      {{ est.nota ? (est.nota.length > 20 ? est.nota.substring(0, 20) + '...' : est.nota) : 'Agregar nota' }}
-                    </button>
+                    <input type="text" placeholder="Agregar nota..."
+                           [ngModel]="est.nota"
+                           (ngModelChange)="service.actualizarNota(est.id, $event)"
+                           class="bg-transparent border-b border-transparent focus:border-primary outline-none text-body-sm py-1 w-full italic opacity-60 focus:opacity-100 transition-all">
                   </td>
                 </tr>
               } @empty {
@@ -164,25 +124,6 @@ import { ToastService } from '../../shared/components/toast/toast.service';
         </div>
       </div>
     </div>
-
-    <!-- Note Modal -->
-    <app-modal [isOpen]="showNoteModal" (close)="closeNoteModal()">
-      <div class="p-md">
-        <h3 class="font-headline-md text-headline-md text-on-surface mb-xs">Nota del Estudiante</h3>
-        <p class="font-label-md text-label-md text-on-surface-variant mb-md">{{ noteStudentName }}</p>
-        <textarea [(ngModel)]="noteText"
-                  class="w-full px-md py-sm rounded-lg border border-outline text-body-sm focus:border-primary focus:ring-2 focus:ring-primary/20 outline-none resize-none transition-all"
-                  rows="4" placeholder="Escribir nota..."></textarea>
-        <div class="flex justify-end gap-sm mt-md">
-          <button class="px-md py-sm rounded-lg border border-outline text-body-sm font-medium text-on-surface hover:bg-surface-container-low transition-all"
-                  (click)="closeNoteModal()">Cancelar</button>
-          <button class="px-md py-sm bg-primary text-on-primary rounded-lg text-body-sm font-medium hover:bg-primary/90 transition-all shadow-sm flex items-center gap-xs"
-                  (click)="confirmNote()">
-            <span class="material-symbols-outlined text-[18px]">check</span> Confirmar
-          </button>
-        </div>
-      </div>
-    </app-modal>
   `,
   styles: [`
     .attendance-radio { cursor: pointer; }
@@ -193,16 +134,9 @@ import { ToastService } from '../../shared/components/toast/toast.service';
 })
 export class AsistenciaComponent {
   protected service = inject(AsistenciaService);
-  private readonly toast = inject(ToastService);
 
   searchQuery = '';
   isSaving = false;
-
-  // Note modal
-  showNoteModal = false;
-  noteStudentId: string | null = null;
-  noteStudentName = '';
-  noteText = '';
 
   readonly filtered = computed(() => {
     const q = this.searchQuery.toLowerCase().trim();
@@ -215,44 +149,12 @@ export class AsistenciaComponent {
 
   readonly paginated = computed(() => this.filtered());
 
-  readonly stats = computed(() => this.service.getStats());
-
-  getInitials(name: string): string {
-    return name
-      .split(' ')
-      .map((p) => p[0])
-      .join('')
-      .substring(0, 2)
-      .toUpperCase();
-  }
-
-  openNoteModal(est: { id: string; nombre: string; nota: string }): void {
-    this.noteStudentId = est.id;
-    this.noteStudentName = `${est.nombre} — ${est.id}`;
-    this.noteText = est.nota || '';
-    this.showNoteModal = true;
-  }
-
-  closeNoteModal(): void {
-    this.showNoteModal = false;
-    this.noteStudentId = null;
-    this.noteText = '';
-  }
-
-  confirmNote(): void {
-    if (this.noteStudentId) {
-      this.service.actualizarNota(this.noteStudentId, this.noteText.trim());
-    }
-    this.closeNoteModal();
-  }
-
   async guardar(): Promise<void> {
     this.isSaving = true;
     try {
       await this.service.guardar();
-      this.toast.show('Asistencia guardada correctamente', 'success');
     } catch {
-      this.toast.show('Error al guardar la asistencia', 'error');
+      console.error('Error al guardar la asistencia');
     } finally {
       this.isSaving = false;
     }

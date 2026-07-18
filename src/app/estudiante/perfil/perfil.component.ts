@@ -47,7 +47,7 @@ import { ToastService } from '../../shared/components/toast/toast.service';
               <p class="text-on-surface-variant font-body-sm text-body-sm">Mantén tu información actualizada.</p>
             </div>
             <button class="flex items-center gap-xs px-md py-sm border-2 border-primary text-primary font-label-md text-label-md rounded-lg hover:bg-primary/5 transition-all"
-                    (click)="showEditProfile = true">
+                    (click)="openEditProfile()">
               <span class="material-symbols-outlined text-[18px]">edit</span>
               Editar
             </button>
@@ -66,17 +66,17 @@ import { ToastService } from '../../shared/components/toast/toast.service';
             <div class="space-y-xs">
               <label class="text-label-sm text-on-surface-variant font-semibold uppercase">Teléfono de Contacto</label>
               <input class="w-full bg-surface-container-low border-outline-variant/30 rounded-lg font-body-md text-body-md text-on-surface px-3 py-2" readonly
-                     value="+51 987 654 321" />
+                     [value]="telefonoDefault" />
             </div>
             <div class="space-y-xs">
               <label class="text-label-sm text-on-surface-variant font-semibold uppercase">Fecha de Nacimiento</label>
               <input class="w-full bg-surface-container-low border-outline-variant/30 rounded-lg font-body-md text-body-md text-on-surface px-3 py-2" readonly
-                     value="15 de Mayo, 2005" />
+                     [value]="fechaNacimientoDefault" />
             </div>
             <div class="md:col-span-2 space-y-xs">
               <label class="text-label-sm text-on-surface-variant font-semibold uppercase">Dirección de Domicilio</label>
               <input class="w-full bg-surface-container-low border-outline-variant/30 rounded-lg font-body-md text-body-md text-on-surface px-3 py-2" readonly
-                     value="Av. Javier Prado Este 2540, San Borja, Lima" />
+                     [value]="direccionDefault" />
             </div>
           </div>
         </div>
@@ -122,6 +122,24 @@ import { ToastService } from '../../shared/components/toast/toast.service';
           <label class="font-label-sm text-label-sm text-on-surface-variant block">Correo Electrónico</label>
           <input type="email" [(ngModel)]="epEmail" name="epEmail" required
                  class="w-full bg-surface-container-low border border-outline-variant rounded-lg py-2.5 px-3 font-body-md text-body-md focus:border-primary focus:bg-white transition-all" />
+        </div>
+        <div class="space-y-1">
+          <label class="font-label-sm text-label-sm text-on-surface-variant block">Teléfono de Contacto</label>
+          <input type="tel" [(ngModel)]="epTelefono" name="epTelefono" required
+                 class="w-full bg-surface-container-low border border-outline-variant rounded-lg py-2.5 px-3 font-body-md text-body-md focus:border-primary focus:bg-white transition-all"
+                 placeholder="+51 999 999 999" />
+        </div>
+        <div class="space-y-1">
+          <label class="font-label-sm text-label-sm text-on-surface-variant block">Fecha de Nacimiento</label>
+          <input type="text" [(ngModel)]="epFechaNacimiento" name="epFechaNacimiento" required
+                 class="w-full bg-surface-container-low border border-outline-variant rounded-lg py-2.5 px-3 font-body-md text-body-md focus:border-primary focus:bg-white transition-all"
+                 placeholder="15 de Mayo, 2005" />
+        </div>
+        <div class="space-y-1">
+          <label class="font-label-sm text-label-sm text-on-surface-variant block">Dirección de Domicilio</label>
+          <input type="text" [(ngModel)]="epDireccion" name="epDireccion" required
+                 class="w-full bg-surface-container-low border border-outline-variant rounded-lg py-2.5 px-3 font-body-md text-body-md focus:border-primary focus:bg-white transition-all"
+                 placeholder="Av. Javier Prado Este 2540, San Borja, Lima" />
         </div>
         <div class="flex justify-end gap-2 pt-sm border-t border-outline/10">
           <button type="button" class="border border-outline/20 px-md py-2.5 rounded-lg font-label-md text-label-md hover:bg-surface-container transition-colors"
@@ -194,11 +212,18 @@ export class PerfilComponent {
   protected authService = inject(AuthService);
   private readonly toast = inject(ToastService);
 
+  readonly telefonoDefault = '+51 987 654 321';
+  readonly fechaNacimientoDefault = '15 de Mayo, 2005';
+  readonly direccionDefault = 'Av. Javier Prado Este 2540, San Borja, Lima';
+
   showEditProfile = false;
   showChangePassword = false;
 
   epNombre = '';
   epEmail = '';
+  epTelefono = '';
+  epFechaNacimiento = '';
+  epDireccion = '';
   epFeedback = '';
   epSuccess = false;
 
@@ -221,13 +246,23 @@ export class PerfilComponent {
     return user ? `${user}.elite@edu.pe` : 'estudiante@edu.pe';
   }
 
+  openEditProfile(): void {
+    this.epNombre = this.displayName;
+    this.epEmail = this.email;
+    this.epTelefono = this.telefonoDefault;
+    this.epFechaNacimiento = this.fechaNacimientoDefault;
+    this.epDireccion = this.direccionDefault;
+    this.epFeedback = '';
+    this.showEditProfile = true;
+  }
+
   closeEditProfile(): void {
     this.showEditProfile = false;
     this.epFeedback = '';
   }
 
   handleEditProfile(): void {
-    if (!this.epNombre || !this.epEmail) {
+    if (!this.epNombre || !this.epEmail || !this.epTelefono || !this.epFechaNacimiento || !this.epDireccion) {
       this.epFeedback = 'Todos los campos son obligatorios.';
       this.epSuccess = false;
       return;

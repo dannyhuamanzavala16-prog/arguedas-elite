@@ -4,7 +4,7 @@ import { Component } from '@angular/core';
   selector: 'app-estudiante-dashboard',
   standalone: true,
   template: `
-    <div class="space-y-lg">
+    <div class="max-w-container-max mx-auto space-y-lg">
       <!-- Welcome Section -->
       <section class="relative overflow-hidden rounded-xl bg-primary-container p-xl text-on-primary shadow-xl">
         <div class="relative z-10 flex flex-col gap-base">
