@@ -203,9 +203,9 @@ export class DocentesComponent {
   filterEspecialidad = '';
   filterEstado = '';
   showFilters = false;
-  appliedNombre = '';
-  appliedEspecialidad = '';
-  appliedEstado = '';
+  appliedNombre = signal('');
+  appliedEspecialidad = signal('');
+  appliedEstado = signal('');
 
   formNombre = '';
   formEmail = '';
@@ -220,10 +220,12 @@ export class DocentesComponent {
 
   readonly filtered = computed(() => {
     let list = this.service.docentes();
-    const fn = this.appliedNombre.toLowerCase().trim();
+    const fn = this.appliedNombre().toLowerCase().trim();
     if (fn) list = list.filter((d) => d.nombre.toLowerCase().includes(fn));
-    if (this.appliedEspecialidad) list = list.filter((d) => d.especialidad === this.appliedEspecialidad);
-    if (this.appliedEstado) list = list.filter((d) => d.estado === this.appliedEstado);
+    const esp = this.appliedEspecialidad();
+    if (esp) list = list.filter((d) => d.especialidad === esp);
+    const est = this.appliedEstado();
+    if (est) list = list.filter((d) => d.estado === est);
     return list;
   });
 
@@ -240,24 +242,24 @@ export class DocentesComponent {
   toggleFilters(): void {
     this.showFilters = !this.showFilters;
     if (!this.showFilters) {
-      this.filterNombre = this.appliedNombre;
-      this.filterEspecialidad = this.appliedEspecialidad;
-      this.filterEstado = this.appliedEstado;
+      this.filterNombre = this.appliedNombre();
+      this.filterEspecialidad = this.appliedEspecialidad();
+      this.filterEstado = this.appliedEstado();
     }
   }
   applyFilters() {
-    this.appliedNombre = this.filterNombre;
-    this.appliedEspecialidad = this.filterEspecialidad;
-    this.appliedEstado = this.filterEstado;
+    this.appliedNombre.set(this.filterNombre);
+    this.appliedEspecialidad.set(this.filterEspecialidad);
+    this.appliedEstado.set(this.filterEstado);
     this.currentPage.set(1);
   }
   clearFilters() {
     this.filterNombre = '';
     this.filterEspecialidad = '';
     this.filterEstado = '';
-    this.appliedNombre = '';
-    this.appliedEspecialidad = '';
-    this.appliedEstado = '';
+    this.appliedNombre.set('');
+    this.appliedEspecialidad.set('');
+    this.appliedEstado.set('');
     this.currentPage.set(1);
   }
 
@@ -286,16 +288,21 @@ export class DocentesComponent {
       icon: 'save', iconBg: 'bg-primary-container/20', iconColor: 'text-primary',
       confirmText: this.editandoCodigo ? 'Guardar' : 'Registrar',
       confirmClass: 'bg-primary text-on-primary hover:bg-primary/90',
-    }).subscribe(ok => {
+    }).subscribe(async (ok) => {
       if (!ok) return;
-      if (this.editandoCodigo) {
-        this.service.actualizar(this.editandoCodigo, { nombre: this.formNombre, email: this.formEmail, especialidad: this.formEspecialidad, cursos, estado: this.formEstado });
-        this.toast.show('Docente actualizado correctamente', 'success');
-      } else {
-        this.service.crear({ nombre: this.formNombre, email: this.formEmail, especialidad: this.formEspecialidad, cursos, estado: this.formEstado });
-        this.toast.show('Docente registrado correctamente', 'success');
+      try {
+        if (this.editandoCodigo) {
+          await this.service.actualizar(this.editandoCodigo, { nombre: this.formNombre, email: this.formEmail, especialidad: this.formEspecialidad, cursos, estado: this.formEstado });
+          this.toast.show('Docente actualizado correctamente', 'success');
+        } else {
+          await this.service.crear({ nombre: this.formNombre, email: this.formEmail, especialidad: this.formEspecialidad, cursos, estado: this.formEstado });
+          this.toast.show('Docente registrado correctamente', 'success');
+        }
+        this.closeModal();
+      } catch (err) {
+        console.error('Error al guardar docente:', err);
+        this.toast.show('Error al guardar. Intente de nuevo.', 'error');
       }
-      this.closeModal();
     });
   }
 
@@ -305,6 +312,15 @@ export class DocentesComponent {
       desc: '¿Estás seguro de eliminar a este docente? Esta acción no se puede deshacer.',
       icon: 'delete', iconBg: 'bg-error-container', iconColor: 'text-error',
       confirmText: 'Eliminar', confirmClass: 'bg-error text-on-error hover:bg-error/90',
-    }).subscribe(ok => { if (ok) { this.service.eliminar(codigo); this.toast.show('Docente eliminado correctamente', 'success'); } });
+    }).subscribe(async (ok) => {
+      if (!ok) return;
+      try {
+        await this.service.eliminar(codigo);
+        this.toast.show('Docente eliminado correctamente', 'success');
+      } catch (err) {
+        console.error('Error al eliminar docente:', err);
+        this.toast.show('Error al eliminar. Intente de nuevo.', 'error');
+      }
+    });
   }
 }

@@ -33,9 +33,9 @@ export class EstudiantesComponent {
   filterCarrera = '';
   filterEstado = '';
   showFilters = false;
-  appliedNombre = '';
-  appliedCarrera = '';
-  appliedEstado = '';
+  appliedNombre = signal('');
+  appliedCarrera = signal('');
+  appliedEstado = signal('');
 
   // Form
   formNombre = '';
@@ -53,10 +53,12 @@ export class EstudiantesComponent {
 
   readonly filtered = computed(() => {
     let list = this.service.estudiantes();
-    const fn = this.appliedNombre.toLowerCase().trim();
+    const fn = this.appliedNombre().toLowerCase().trim();
     if (fn) list = list.filter((e) => e.nombre.toLowerCase().includes(fn));
-    if (this.appliedCarrera) list = list.filter((e) => e.carrera === this.appliedCarrera);
-    if (this.appliedEstado) list = list.filter((e) => e.estado === this.appliedEstado);
+    const carr = this.appliedCarrera();
+    if (carr) list = list.filter((e) => e.carrera === carr);
+    const est = this.appliedEstado();
+    if (est) list = list.filter((e) => e.estado === est);
     return list;
   });
 
@@ -90,16 +92,16 @@ export class EstudiantesComponent {
     this.showFilters = !this.showFilters;
     if (!this.showFilters) {
       // Al cerrar sin aplicar, restaurar valores aplicados
-      this.filterNombre = this.appliedNombre;
-      this.filterCarrera = this.appliedCarrera;
-      this.filterEstado = this.appliedEstado;
+      this.filterNombre = this.appliedNombre();
+      this.filterCarrera = this.appliedCarrera();
+      this.filterEstado = this.appliedEstado();
     }
   }
 
   applyFilters(): void {
-    this.appliedNombre = this.filterNombre;
-    this.appliedCarrera = this.filterCarrera;
-    this.appliedEstado = this.filterEstado;
+    this.appliedNombre.set(this.filterNombre);
+    this.appliedCarrera.set(this.filterCarrera);
+    this.appliedEstado.set(this.filterEstado);
     this.currentPage.set(1);
   }
 
@@ -107,9 +109,9 @@ export class EstudiantesComponent {
     this.filterNombre = '';
     this.filterCarrera = '';
     this.filterEstado = '';
-    this.appliedNombre = '';
-    this.appliedCarrera = '';
-    this.appliedEstado = '';
+    this.appliedNombre.set('');
+    this.appliedCarrera.set('');
+    this.appliedEstado.set('');
     this.currentPage.set(1);
   }
 
@@ -155,29 +157,34 @@ export class EstudiantesComponent {
         confirmText: this.editandoCodigo ? 'Guardar' : 'Registrar',
         confirmClass: 'bg-primary text-on-primary hover:bg-primary/90',
       })
-      .subscribe((ok) => {
+      .subscribe(async (ok) => {
         if (!ok) return;
 
-        if (this.editandoCodigo) {
-          this.service.actualizar(this.editandoCodigo, {
-            nombre: this.formNombre,
-            email: this.formEmail,
-            salon: this.formSalon,
-            carrera: this.formCarrera,
-            estado: this.formEstado,
-          });
-          this.toast.show('Estudiante actualizado correctamente', 'success');
-        } else {
-          this.service.crear({
-            nombre: this.formNombre,
-            email: this.formEmail,
-            salon: this.formSalon,
-            carrera: this.formCarrera,
-            estado: this.formEstado,
-          });
-          this.toast.show('Estudiante registrado correctamente', 'success');
+        try {
+          if (this.editandoCodigo) {
+            await this.service.actualizar(this.editandoCodigo, {
+              nombre: this.formNombre,
+              email: this.formEmail,
+              salon: this.formSalon,
+              carrera: this.formCarrera,
+              estado: this.formEstado,
+            });
+            this.toast.show('Estudiante actualizado correctamente', 'success');
+          } else {
+            await this.service.crear({
+              nombre: this.formNombre,
+              email: this.formEmail,
+              salon: this.formSalon,
+              carrera: this.formCarrera,
+              estado: this.formEstado,
+            });
+            this.toast.show('Estudiante registrado correctamente', 'success');
+          }
+          this.closeModal();
+        } catch (err) {
+          console.error('Error al guardar:', err);
+          this.toast.show('Error al guardar. Intente de nuevo.', 'error');
         }
-        this.closeModal();
       });
   }
 
@@ -194,10 +201,14 @@ export class EstudiantesComponent {
         confirmText: 'Eliminar',
         confirmClass: 'bg-error text-on-error hover:bg-error/90',
       })
-      .subscribe((ok) => {
-        if (ok) {
-          this.service.eliminar(codigo);
+      .subscribe(async (ok) => {
+        if (!ok) return;
+        try {
+          await this.service.eliminar(codigo);
           this.toast.show('Estudiante eliminado correctamente', 'success');
+        } catch (err) {
+          console.error('Error al eliminar:', err);
+          this.toast.show('Error al eliminar. Intente de nuevo.', 'error');
         }
       });
   }

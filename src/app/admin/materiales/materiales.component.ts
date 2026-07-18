@@ -122,8 +122,8 @@ export class MaterialesComponent {
 
   filterCurso = '';
   filterTipo = '';
-  appliedCurso = '';
-  appliedTipo = '';
+  appliedCurso = signal('');
+  appliedTipo = signal('');
   formNombre = '';
   formCurso = '';
   showModal = false;
@@ -134,8 +134,10 @@ export class MaterialesComponent {
 
   readonly filtered = computed(() => {
     let list = this.service.materiales();
-    if (this.appliedCurso) list = list.filter((m) => m.curso === this.appliedCurso);
-    if (this.appliedTipo) list = list.filter((m) => m.tipo === this.appliedTipo);
+    const cur = this.appliedCurso();
+    if (cur) list = list.filter((m) => m.curso === cur);
+    const tip = this.appliedTipo();
+    if (tip) list = list.filter((m) => m.tipo === tip);
     return list;
   });
 
@@ -148,15 +150,15 @@ export class MaterialesComponent {
 
   onPageChange(page: number) { this.currentPage.set(page); }
   applyFilters() {
-    this.appliedCurso = this.filterCurso;
-    this.appliedTipo = this.filterTipo;
+    this.appliedCurso.set(this.filterCurso);
+    this.appliedTipo.set(this.filterTipo);
     this.currentPage.set(1);
   }
   clearFilters() {
     this.filterCurso = '';
     this.filterTipo = '';
-    this.appliedCurso = '';
-    this.appliedTipo = '';
+    this.appliedCurso.set('');
+    this.appliedTipo.set('');
     this.currentPage.set(1);
   }
 
@@ -170,20 +172,35 @@ export class MaterialesComponent {
       desc: `Se subirá "${this.formNombre}" al curso de ${this.formCurso}.`,
       icon: 'upload', iconBg: 'bg-primary-container/20', iconColor: 'text-primary',
       confirmText: 'Subir', confirmClass: 'bg-primary text-on-primary hover:bg-primary/90',
-    }).subscribe(ok => {
+    }).subscribe(async (ok) => {
       if (!ok) return;
-      this.service.crear(this.formNombre, this.formCurso);
-      this.closeModal();
-      this.toast.show('Archivo subido correctamente', 'success');
+      try {
+        await this.service.crear(this.formNombre, this.formCurso);
+        this.closeModal();
+        this.toast.show('Archivo subido correctamente', 'success');
+      } catch (err) {
+        console.error('Error al subir material:', err);
+        this.toast.show('Error al subir material. Intente de nuevo.', 'error');
+      }
     });
   }
 
-  confirmDelete(id: string): void {
+  confirmDelete(id?: string): void {
+    if (!id) return;
     this.confirm.confirm({
       title: 'Eliminar archivo',
       desc: '¿Estás seguro de eliminar este archivo? Esta acción no se puede deshacer.',
       icon: 'delete', iconBg: 'bg-error-container', iconColor: 'text-error',
       confirmText: 'Eliminar', confirmClass: 'bg-error text-on-error hover:bg-error/90',
-    }).subscribe(ok => { if (ok) { this.service.eliminar(id); this.toast.show('Archivo eliminado correctamente', 'success'); } });
+    }).subscribe(async (ok) => {
+      if (!ok) return;
+      try {
+        await this.service.eliminar(id);
+        this.toast.show('Archivo eliminado correctamente', 'success');
+      } catch (err) {
+        console.error('Error al eliminar material:', err);
+        this.toast.show('Error al eliminar material. Intente de nuevo.', 'error');
+      }
+    });
   }
 }

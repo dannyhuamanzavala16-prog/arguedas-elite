@@ -22,21 +22,6 @@ const ESTUDIANTES = [
   { codigo: '#EA-2024-115', nombre: 'Lucía Paredes', email: 'lucia.p@elite.edu', salon: 'Aula 202 - C', carrera: 'Arquitectura', estado: 'Pendiente', createdAt: daysAgo(1, 1) },
   { codigo: '#EA-2024-089', nombre: 'Samuel Valdivia', email: 'samuel.v@elite.edu', salon: 'Aula 402 - B', carrera: 'Derecho', estado: 'Activo', createdAt: daysAgo(1, 3) },
   { codigo: '#EA-2024-032', nombre: 'Camila Gutiérrez', email: 'camila.g@elite.edu', salon: 'Aula 301 - A', carrera: 'Psicología', estado: 'Activo', createdAt: daysAgo(2, 0) },
-  { codigo: '#EA-2024-078', nombre: 'Diego Torres', email: 'diego.t@elite.edu', salon: 'Aula 201 - B', carrera: 'Ingeniería Civil', estado: 'Activo', createdAt: daysAgo(2, 4) },
-  { codigo: '#EA-2024-156', nombre: 'Fernanda Vargas', email: 'fernanda.v@elite.edu', salon: 'Aula 305 - C', carrera: 'Administración', estado: 'Activo', createdAt: daysAgo(3, 2) },
-  { codigo: '#EA-2024-201', nombre: 'Gabriela Huamán', email: 'gabriela.h@elite.edu', salon: 'Aula 101 - A', carrera: 'Medicina Humana', estado: 'Pendiente', createdAt: daysAgo(3, 6) },
-  { codigo: '#EA-2024-067', nombre: 'Javier Mendoza', email: 'javier.m@elite.edu', salon: 'Aula 402 - A', carrera: 'Derecho', estado: 'Activo', createdAt: daysAgo(4, 1) },
-  { codigo: '#EA-2024-188', nombre: 'Karina León', email: 'karina.l@elite.edu', salon: 'Aula 203 - C', carrera: 'Arquitectura', estado: 'Activo', createdAt: daysAgo(4, 5) },
-  { codigo: '#EA-2024-223', nombre: 'Miguel Ríos', email: 'miguel.r@elite.edu', salon: 'Aula 106 - B', carrera: 'Ingeniería de Sistemas', estado: 'Activo', createdAt: daysAgo(5, 0) },
-  { codigo: '#EA-2024-145', nombre: 'Nicole Pizarro', email: 'nicole.p@elite.edu', salon: 'Aula 304 - A', carrera: 'Psicología', estado: 'Pendiente', createdAt: daysAgo(5, 3) },
-  { codigo: '#EA-2024-091', nombre: 'Óscar Sánchez', email: 'oscar.s@elite.edu', salon: 'Aula 401 - A', carrera: 'Administración', estado: 'Activo', createdAt: daysAgo(6, 2) },
-  { codigo: '#EA-2024-177', nombre: 'Paola Tapia', email: 'paola.t@elite.edu', salon: 'Aula 202 - B', carrera: 'Medicina Humana', estado: 'Activo', createdAt: daysAgo(6, 7) },
-  { codigo: '#EA-2024-210', nombre: 'Raúl Morales', email: 'raul.m@elite.edu', salon: 'Aula 103 - C', carrera: 'Ingeniería Civil', estado: 'Pendiente', createdAt: daysAgo(7, 1) },
-  { codigo: '#EA-2024-054', nombre: 'Sofía Castro', email: 'sofia.c@elite.edu', salon: 'Aula 302 - A', carrera: 'Arquitectura', estado: 'Activo', createdAt: daysAgo(8, 0) },
-  { codigo: '#EA-2024-239', nombre: 'Thiago Rodríguez', email: 'thiago.r@elite.edu', salon: 'Aula 405 - B', carrera: 'Derecho', estado: 'Activo', createdAt: daysAgo(9, 3) },
-  { codigo: '#EA-2024-133', nombre: 'Valeria Ávila', email: 'valeria.a@elite.edu', salon: 'Aula 204 - A', carrera: 'Psicología', estado: 'Activo', createdAt: daysAgo(10, 0) },
-  { codigo: '#EA-2024-198', nombre: 'Bruno Campos', email: 'bruno.c@elite.edu', salon: 'Aula 306 - B', carrera: 'Ingeniería de Sistemas', estado: 'Pendiente', createdAt: daysAgo(11, 2) },
-  { codigo: '#EA-2024-248', nombre: 'Daniela Mendoza', email: 'daniela.m@elite.edu', salon: 'Aula 303 - A', carrera: 'Medicina Humana', estado: 'Activo', createdAt: daysAgo(12, 1) },
 ];
 
 const DOCENTES = [
@@ -45,7 +30,6 @@ const DOCENTES = [
   { codigo: '#DOC-2025-003', nombre: 'María García', email: 'maria.garcia@elite.edu', especialidad: 'Lenguaje', cursos: ['Lenguaje I', 'Literatura'], estado: 'Activo', createdAt: daysAgo(3, 0) },
   { codigo: '#DOC-2025-004', nombre: 'José Martínez', email: 'jose.martinez@elite.edu', especialidad: 'Historia', cursos: ['Historia Universal', 'Historia del Perú'], estado: 'Pendiente', createdAt: daysAgo(5, 4) },
   { codigo: '#DOC-2025-005', nombre: 'Rosa Huamán', email: 'rosa.h@elite.edu', especialidad: 'Biología', cursos: ['Biología General', 'Anatomía'], estado: 'Activo', createdAt: daysAgo(8, 2) },
-  { codigo: '#DOC-2025-006', nombre: 'Pedro Sánchez', email: 'pedro.sanchez@elite.edu', especialidad: 'Química', cursos: ['Química General', 'Química Orgánica'], estado: 'Activo', createdAt: daysAgo(10, 5) },
 ];
 
 const MATERIALES = [
@@ -54,9 +38,6 @@ const MATERIALES = [
   { nombre: 'Diapositivas de Química Orgánica.pptx', curso: 'Química', tipo: 'PPTX', tamano: '5.2 MB', icono: 'present_to_all', colorClase: 'bg-tertiary-container/20 text-tertiary', fecha: '2025-06-13', createdAt: daysAgo(2, 5) },
   { nombre: 'Compendio de Biología.zip', curso: 'Biología', tipo: 'ZIP', tamano: '12.0 MB', icono: 'folder_zip', colorClase: 'bg-secondary-container text-secondary', fecha: '2025-06-12', createdAt: daysAgo(3, 1) },
   { nombre: 'Clase grabada: Cinemática.mp4', curso: 'Física', tipo: 'MP4', tamano: '45.3 MB', icono: 'movie', colorClase: 'bg-on-tertiary-fixed-variant/10 text-tertiary-fixed-dim', fecha: '2025-06-11', createdAt: daysAgo(4, 3) },
-  { nombre: 'Ejercicios de Razonamiento.pdf', curso: 'Razonamiento Matemático', tipo: 'PDF', tamano: '1.2 MB', icono: 'picture_as_pdf', colorClase: 'bg-error-container text-on-error-container', fecha: '2025-06-10', createdAt: daysAgo(5, 2) },
-  { nombre: 'Resumen de Literatura.docx', curso: 'Literatura', tipo: 'DOCX', tamano: '0.8 MB', icono: 'description', colorClase: 'bg-primary-container/10 text-primary', fecha: '2025-06-09', createdAt: daysAgo(6, 4) },
-  { nombre: 'Práctica de Geometría.pdf', curso: 'Geometría', tipo: 'PDF', tamano: '3.1 MB', icono: 'picture_as_pdf', colorClase: 'bg-error-container text-on-error-container', fecha: '2025-06-08', createdAt: daysAgo(7, 0) },
 ];
 
 // ─── Helpers ─────────────────────────────────────────────────────────────────
@@ -125,8 +106,12 @@ async function main() {
   const idToken = await signIn('admin@arguedas.edu.pe', 'admin123');
   console.log('✅ Autenticado como admin\n');
 
-  // Estudiantes — doc ID = codigo sin '#'
-  console.log('📚 Estudiantes:');
+  // Estudiantes — limpiar anteriores y registrar (5 elements)
+  console.log('📚 Estudiantes (limpiando duplicados...):');
+  const existingEstIds = await listDocIds('estudiantes', idToken);
+  for (const id of existingEstIds) await deleteDoc('estudiantes', id, idToken);
+  console.log(`  🗑️  ${existingEstIds.length} estudiantes eliminados`);
+
   for (const est of ESTUDIANTES) {
     const docId = est.codigo.replace('#', '');
     process.stdout.write(`  ⏳ ${est.nombre}...`);
@@ -138,8 +123,12 @@ async function main() {
     }
   }
 
-  // Docentes — doc ID = codigo sin '#'
-  console.log('\n👨‍🏫 Docentes:');
+  // Docentes — limpiar anteriores y registrar (5 elements)
+  console.log('\n👨‍🏫 Docentes (limpiando duplicados...):');
+  const existingDocIds = await listDocIds('docentes', idToken);
+  for (const id of existingDocIds) await deleteDoc('docentes', id, idToken);
+  console.log(`  🗑️  ${existingDocIds.length} docentes eliminados`);
+
   for (const doc of DOCENTES) {
     const docId = doc.codigo.replace('#', '');
     process.stdout.write(`  ⏳ ${doc.nombre}...`);
@@ -151,11 +140,11 @@ async function main() {
     }
   }
 
-  // Materiales — borrar existentes y re-crear con ID slug (idempotente)
+  // Materiales — borrar existentes y re-crear con ID slug (5 elements)
   console.log('\n📁 Materiales (limpiando duplicados...):');
-  const existingIds = await listDocIds('materiales', idToken);
-  for (const id of existingIds) await deleteDoc('materiales', id, idToken);
-  console.log(`  🗑️  ${existingIds.length} docs anteriores eliminados`);
+  const existingMatIds = await listDocIds('materiales', idToken);
+  for (const id of existingMatIds) await deleteDoc('materiales', id, idToken);
+  console.log(`  🗑️  ${existingMatIds.length} docs anteriores eliminados`);
 
   for (const mat of MATERIALES) {
     const docId = slugId(mat.nombre);
