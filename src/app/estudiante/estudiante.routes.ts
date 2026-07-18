@@ -1,25 +1,34 @@
 import { Routes } from '@angular/router';
 import { roleGuard } from '../auth/guards/role.guard';
+import { EstudianteLayoutComponent } from './estudiante-layout.component';
 
 export const estudianteRoutes: Routes = [
   {
     path: '',
+    component: EstudianteLayoutComponent,
     canActivate: [roleGuard('estudiante')],
-    loadComponent: () => import('./asistencia/asistencia.component').then((m) => m.AsistenciaComponent),
-  },
-  {
-    path: 'asistencia',
-    canActivate: [roleGuard('estudiante')],
-    loadComponent: () => import('./asistencia/asistencia.component').then((m) => m.AsistenciaComponent),
-  },
-  {
-    path: 'materiales',
-    canActivate: [roleGuard('estudiante')],
-    loadComponent: () => import('./materiales/materiales.component').then((m) => m.MaterialesComponent),
-  },
-  {
-    path: 'perfil',
-    canActivate: [roleGuard('estudiante')],
-    loadComponent: () => import('./perfil/perfil.component').then((m) => m.PerfilComponent),
+    children: [
+      { path: '', redirectTo: 'dashboard', pathMatch: 'full' },
+      {
+        path: 'dashboard',
+        loadComponent: () =>
+          import('./dashboard/dashboard.component').then((m) => m.EstudianteDashboardComponent),
+      },
+      {
+        path: 'asistencia',
+        loadComponent: () =>
+          import('./asistencia/asistencia.component').then((m) => m.AsistenciaComponent),
+      },
+      {
+        path: 'materiales',
+        loadComponent: () =>
+          import('./materiales/materiales.component').then((m) => m.MaterialesComponent),
+      },
+      {
+        path: 'perfil',
+        loadComponent: () =>
+          import('./perfil/perfil.component').then((m) => m.PerfilComponent),
+      },
+    ],
   },
 ];

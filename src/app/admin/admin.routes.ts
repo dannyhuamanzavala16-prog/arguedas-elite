@@ -1,31 +1,39 @@
 import { Routes } from '@angular/router';
 import { roleGuard } from '../auth/guards/role.guard';
+import { AdminLayoutComponent } from './admin-layout.component';
 
 export const adminRoutes: Routes = [
   {
     path: '',
+    component: AdminLayoutComponent,
     canActivate: [roleGuard('admin')],
-    // TODO: Fase 2 — AdminLayoutComponent con children
-    loadComponent: () => import('./estudiantes/estudiantes.component').then((m) => m.EstudiantesComponent),
-  },
-  {
-    path: 'estudiantes',
-    canActivate: [roleGuard('admin')],
-    loadComponent: () => import('./estudiantes/estudiantes.component').then((m) => m.EstudiantesComponent),
-  },
-  {
-    path: 'docentes',
-    canActivate: [roleGuard('admin')],
-    loadComponent: () => import('./docentes/docentes.component').then((m) => m.DocentesComponent),
-  },
-  {
-    path: 'materiales',
-    canActivate: [roleGuard('admin')],
-    loadComponent: () => import('./materiales/materiales.component').then((m) => m.MaterialesComponent),
-  },
-  {
-    path: 'perfil',
-    canActivate: [roleGuard('admin')],
-    loadComponent: () => import('./perfil/perfil.component').then((m) => m.PerfilComponent),
+    children: [
+      { path: '', redirectTo: 'dashboard', pathMatch: 'full' },
+      {
+        path: 'dashboard',
+        loadComponent: () =>
+          import('./dashboard/dashboard.component').then((m) => m.AdminDashboardComponent),
+      },
+      {
+        path: 'estudiantes',
+        loadComponent: () =>
+          import('./estudiantes/estudiantes.component').then((m) => m.EstudiantesComponent),
+      },
+      {
+        path: 'docentes',
+        loadComponent: () =>
+          import('./docentes/docentes.component').then((m) => m.DocentesComponent),
+      },
+      {
+        path: 'materiales',
+        loadComponent: () =>
+          import('./materiales/materiales.component').then((m) => m.MaterialesComponent),
+      },
+      {
+        path: 'perfil',
+        loadComponent: () =>
+          import('./perfil/perfil.component').then((m) => m.PerfilComponent),
+      },
+    ],
   },
 ];

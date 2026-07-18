@@ -1,0 +1,21 @@
+.sidebar-link {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  color: rgba(255, 255, 255, 0.7);
+  padding: 12px 24px;
+  transition: all 0.2s;
+}
+
+.sidebar-link:hover {
+  background: rgba(255, 255, 255, 0.05);
+  color: #fff;
+}
+
+.sidebar-link-active {
+  background: rgba(200, 169, 0, 0.2);
+  color: #e9c400;
+  border-left: 4px solid #e9c400;
+  padding-left: 20px;
+  transform: scale(0.95);
+}

@@ -1,0 +1,67 @@
+<div class="flex min-h-screen bg-[#f5f5f5] overflow-x-hidden">
+  <!-- Sidebar (desktop) -->
+  <aside class="hidden md:flex flex-col h-full w-sidebar-width fixed left-0 bg-primary text-on-primary border-r border-outline/10 py-md z-50">
+    <div class="px-md mb-xl">
+      <h1 class="font-headline-md text-headline-md font-bold text-tertiary-fixed">Elite Academy</h1>
+    </div>
+
+    <nav class="flex-1 flex flex-col gap-1">
+      @for (link of sidebarLinks; track link.path) {
+        <a
+          [routerLink]="link.path"
+          routerLinkActive="sidebar-link-active"
+          [routerLinkActiveOptions]="{ exact: link.path === '/docente/dashboard' }"
+          class="sidebar-link"
+        >
+          <span class="material-symbols-outlined">{{ link.icon }}</span>
+          <span class="font-label-md text-label-md">{{ link.label }}</span>
+        </a>
+      }
+    </nav>
+
+    <!-- Logout -->
+    <div class="px-md mt-auto pt-md border-t border-on-primary/10">
+      <a
+        routerLink="/login"
+        class="flex items-center gap-sm text-on-primary/70 px-md py-sm hover:text-on-primary transition-all"
+        (click)="auth.logout()"
+      >
+        <span class="material-symbols-outlined">logout</span>
+        <span class="font-label-md text-label-md">Cerrar Sesión</span>
+      </a>
+    </div>
+  </aside>
+
+  <!-- Main Content -->
+  <main class="flex-1 md:ml-sidebar-width flex flex-col min-h-screen min-w-0">
+    <!-- Header -->
+    <header class="sticky top-0 z-40 flex justify-between items-center w-full px-xl h-16 bg-surface shadow-sm">
+      <div class="flex items-center gap-md ml-auto">
+        <div class="flex items-center gap-sm">
+          <span class="font-label-md text-label-md font-bold text-primary">{{ displayName }}</span>
+          <div class="w-10 h-10 rounded-full bg-primary-container flex items-center justify-center text-on-primary-container overflow-hidden border border-outline/10">
+            <span class="material-symbols-outlined" style="font-size: 24px;">person</span>
+          </div>
+        </div>
+      </div>
+    </header>
+
+    <!-- Child routes -->
+    <router-outlet />
+  </main>
+
+  <!-- Mobile Nav (bottom) -->
+  <nav class="md:hidden fixed bottom-0 left-0 right-0 bg-surface-container-lowest flex justify-around items-center h-16 shadow-[0_-2px_10px_rgba(0,0,0,0.05)] z-50">
+    @for (link of mobileLinks; track link.path) {
+      <a
+        [routerLink]="link.path"
+        routerLinkActive="mobile-link-active"
+        [routerLinkActiveOptions]="{ exact: link.path === '/docente/dashboard' }"
+        class="flex flex-col items-center text-on-surface-variant opacity-60"
+      >
+        <span class="material-symbols-outlined">{{ link.icon }}</span>
+        <span class="text-[10px]">{{ link.label }}</span>
+      </a>
+    }
+  </nav>
+</div>
