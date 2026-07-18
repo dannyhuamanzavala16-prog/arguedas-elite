@@ -1,0 +1,112 @@
+<div class="min-h-screen flex flex-col items-center justify-center p-md overflow-hidden relative bg-login-gradient">
+  <!-- Atmospheric Background Elements -->
+  <div class="absolute top-[-10%] left-[-10%] w-[40%] h-[40%] rounded-full bg-tertiary-fixed opacity-10 blur-3xl animate-pulse"></div>
+  <div class="absolute bottom-[-10%] right-[-10%] w-[50%] h-[50%] rounded-full bg-primary-fixed-dim opacity-5 blur-3xl"></div>
+
+  <main class="w-full max-w-md z-10">
+    <!-- Login Card -->
+    <div class="bg-surface-container-lowest glass-effect rounded-xl shadow-2xl overflow-hidden transform transition-all duration-500 hover:scale-[1.01]">
+      <div class="px-md py-xl flex flex-col items-center">
+        <!-- Logo & Brand -->
+        <div class="mb-lg text-center">
+          <div class="relative inline-block">
+            <div class="absolute inset-0 bg-tertiary-fixed rounded-full blur-md opacity-20"></div>
+            <img
+              alt="Arguedas Elite Logo"
+              class="w-24 h-24 relative z-10 rounded-full border-4 border-on-primary-container/10"
+              src="data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAABAAAAAQACAYAAAB/HSuDAAAQAElEQVR4nOy9B3gU1fb//0x6JwkQIPQI0gQUVJpYQJpU6b0jXUBFQUSkKihgAQv4s4FdFAX1Z0WliHQQpBN6mpCQ3ncm+T+8z31mk93ZTXY3yW72/TyPT5LZmbnnnnvK6Z8jIiAIYcfkyZN9RFH0E0XRT4qLECIQQgghhBBCCCGE2Dd+v/4JhJA/RBRFP9kC4C9bAvykKPoRQogQQgghhBBCCCGE2Dcejx9pA/yT6QfYAgAAAAAASUVORK5CYII="
+            >
+          </div>
+          <h1 class="font-headline-md text-headline-md text-primary mt-sm tracking-tight">
+            ARGUEDAS ELITE
+          </h1>
+          <p class="font-label-sm text-label-sm text-on-surface-variant uppercase tracking-widest mt-xs">
+            Plataforma de Gestión Académica
+          </p>
+        </div>
+
+        <!-- Form -->
+        <form class="w-full space-y-md" (ngSubmit)="onSubmit()" #loginForm="ngForm">
+          <!-- Username -->
+          <div class="space-y-xs">
+            <label class="font-label-md text-label-md text-on-surface-variant block px-xs" for="username">
+              Nombre de usuario
+            </label>
+            <div class="relative">
+              <span class="material-symbols-outlined absolute left-4 top-1/2 -translate-y-1/2 text-outline">person</span>
+              <input
+                id="username"
+                name="username"
+                type="text"
+                [(ngModel)]="username"
+                placeholder="Ingresa tu usuario"
+                class="w-full bg-surface-container-low border border-outline-variant rounded-lg py-3 pl-12 pr-4 font-body-md text-body-md transition-all focus:border-primary focus:bg-white"
+                (input)="hideError()"
+              >
+            </div>
+          </div>
+
+          <!-- Password -->
+          <div class="space-y-xs">
+            <label class="font-label-md text-label-md text-on-surface-variant block px-xs" for="password">
+              Contraseña
+            </label>
+            <div class="relative">
+              <span class="material-symbols-outlined absolute left-4 top-1/2 -translate-y-1/2 text-outline">lock</span>
+              <input
+                #pwdInput
+                id="password"
+                name="password"
+                type="password"
+                [(ngModel)]="password"
+                placeholder="••••••••"
+                class="w-full bg-surface-container-low border border-outline-variant rounded-lg py-3 pl-12 pr-12 font-body-md text-body-md transition-all focus:border-primary focus:bg-white"
+                (input)="hideError()"
+              >
+              <button
+                type="button"
+                class="absolute right-4 top-1/2 -translate-y-1/2 text-outline hover:text-primary transition-colors focus:outline-none"
+                (click)="togglePassword(pwdInput, visibilityIcon)"
+              >
+                <span class="material-symbols-outlined" #visibilityIcon>visibility</span>
+              </button>
+            </div>
+          </div>
+
+          <!-- Error Message -->
+          @if (showError) {
+            <div
+              id="login-error"
+              class="flex items-center gap-2 bg-error-container text-on-error-container font-label-sm text-label-sm px-4 py-3 rounded-lg mb-2 shake"
+            >
+              <span class="material-symbols-outlined text-lg">error_outline</span>
+              <span>{{ errorMessage }}</span>
+            </div>
+          }
+
+          <!-- Submit Button -->
+          <div class="pt-sm">
+            <button
+              type="submit"
+              class="w-full bg-primary-container text-on-primary font-label-md text-label-md py-4 rounded-lg shadow-lg hover:bg-primary transition-all active:scale-[0.98] focus:ring-4 focus:ring-primary/20"
+            >
+              Iniciar Sesión
+            </button>
+          </div>
+        </form>
+      </div>
+    </div>
+
+    <!-- Footer -->
+    <footer class="mt-lg text-center">
+      <p class="font-label-sm text-label-sm text-on-primary/60 tracking-wider">
+        Academia Preuniversitaria Arguedas Elite
+      </p>
+      <div class="mt-base flex justify-center space-x-sm opacity-50">
+        <span class="w-1.5 h-1.5 bg-tertiary-fixed rounded-full"></span>
+        <span class="w-1.5 h-1.5 bg-tertiary-fixed rounded-full"></span>
+        <span class="w-1.5 h-1.5 bg-tertiary-fixed rounded-full"></span>
+      </div>
+    </footer>
+  </main>
+</div>
