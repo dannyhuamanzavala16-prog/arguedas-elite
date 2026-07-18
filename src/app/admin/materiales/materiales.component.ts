@@ -31,7 +31,7 @@ const ITEMS_PER_PAGE = 6;
         <div class="flex flex-wrap items-end gap-md">
           <div class="flex-1 min-w-[200px]">
             <label class="font-label-sm text-label-sm text-on-surface-variant block mb-1">Curso</label>
-            <select [(ngModel)]="filterCurso" (change)="applyFilters()"
+            <select [(ngModel)]="filterCurso"
                     class="w-full bg-surface-container-lowest border border-outline-variant rounded-lg py-2 px-3 font-body-md text-body-md">
               <option value="">Todos</option>
               @for (c of cursos(); track c) { <option [value]="c">{{ c }}</option> }
@@ -39,14 +39,18 @@ const ITEMS_PER_PAGE = 6;
           </div>
           <div class="flex-1 min-w-[160px]">
             <label class="font-label-sm text-label-sm text-on-surface-variant block mb-1">Tipo</label>
-            <select [(ngModel)]="filterTipo" (change)="applyFilters()"
+            <select [(ngModel)]="filterTipo"
                     class="w-full bg-surface-container-lowest border border-outline-variant rounded-lg py-2 px-3 font-body-md text-body-md">
               <option value="">Todos</option>
               @for (t of tipos(); track t) { <option [value]="t">{{ t }}</option> }
             </select>
           </div>
-          <button class="border border-outline/20 px-md py-2 rounded-lg font-label-md text-label-md hover:bg-surface-container transition-colors"
-                  (click)="clearFilters()">Limpiar</button>
+          <div class="flex items-center gap-2">
+            <button class="bg-primary text-on-primary px-md py-2 rounded-lg font-label-md text-label-md hover:bg-primary/90 transition-colors"
+                    (click)="applyFilters()">Aplicar</button>
+            <button class="border border-outline/20 px-md py-2 rounded-lg font-label-md text-label-md hover:bg-surface-container transition-colors"
+                    (click)="clearFilters()">Limpiar</button>
+          </div>
         </div>
       </div>
 
@@ -118,6 +122,8 @@ export class MaterialesComponent {
 
   filterCurso = '';
   filterTipo = '';
+  appliedCurso = '';
+  appliedTipo = '';
   formNombre = '';
   formCurso = '';
   showModal = false;
@@ -128,8 +134,8 @@ export class MaterialesComponent {
 
   readonly filtered = computed(() => {
     let list = this.service.materiales();
-    if (this.filterCurso) list = list.filter((m) => m.curso === this.filterCurso);
-    if (this.filterTipo) list = list.filter((m) => m.tipo === this.filterTipo);
+    if (this.appliedCurso) list = list.filter((m) => m.curso === this.appliedCurso);
+    if (this.appliedTipo) list = list.filter((m) => m.tipo === this.appliedTipo);
     return list;
   });
 
@@ -141,8 +147,18 @@ export class MaterialesComponent {
   readonly totalItems = computed(() => this.filtered().length);
 
   onPageChange(page: number) { this.currentPage.set(page); }
-  applyFilters() { this.currentPage.set(1); }
-  clearFilters() { this.filterCurso = ''; this.filterTipo = ''; this.currentPage.set(1); }
+  applyFilters() {
+    this.appliedCurso = this.filterCurso;
+    this.appliedTipo = this.filterTipo;
+    this.currentPage.set(1);
+  }
+  clearFilters() {
+    this.filterCurso = '';
+    this.filterTipo = '';
+    this.appliedCurso = '';
+    this.appliedTipo = '';
+    this.currentPage.set(1);
+  }
 
   openUploadModal(): void { this.formNombre = ''; this.formCurso = ''; this.showModal = true; }
   closeModal(): void { this.showModal = false; }

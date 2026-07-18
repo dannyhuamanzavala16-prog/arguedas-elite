@@ -22,9 +22,6 @@
     <div class="p-md border-b border-outline/10 flex flex-col md:flex-row justify-between items-center gap-md">
       <div class="flex items-center gap-sm">
         <h3 class="font-headline-sm text-headline-sm text-on-surface">Listado de Alumnos</h3>
-        <span class="bg-surface-container-high text-on-surface-variant px-sm py-0.5 rounded-full font-label-sm text-label-sm">
-          {{ filtered().length }} mostrados
-        </span>
       </div>
       <div class="flex items-center gap-sm">
         <button
@@ -33,6 +30,12 @@
         >
           <span class="material-symbols-outlined text-[18px]">filter_list</span>
           Filtrar
+        </button>
+        <button
+          class="flex items-center gap-2 border border-outline/20 px-sm py-1.5 rounded-lg text-label-md font-label-md hover:bg-surface-container transition-colors"
+        >
+          <span class="material-symbols-outlined text-[18px]">download</span>
+          Exportar
         </button>
       </div>
     </div>
@@ -48,7 +51,6 @@
               [(ngModel)]="filterNombre"
               placeholder="Escribe un nombre..."
               class="w-full bg-surface-container-lowest border border-outline-variant rounded-lg py-2 px-3 font-body-md text-body-md focus:border-primary focus:bg-white transition-all"
-              (input)="applyFilters()"
             />
           </div>
           <div class="flex-1 min-w-[160px]">
@@ -56,7 +58,6 @@
             <select
               [(ngModel)]="filterCarrera"
               class="w-full bg-surface-container-lowest border border-outline-variant rounded-lg py-2 px-3 font-body-md text-body-md focus:border-primary focus:bg-white transition-all"
-              (change)="applyFilters()"
             >
               <option value="">Todas</option>
               @for (c of carreras(); track c) {
@@ -69,19 +70,26 @@
             <select
               [(ngModel)]="filterEstado"
               class="w-full bg-surface-container-lowest border border-outline-variant rounded-lg py-2 px-3 font-body-md text-body-md focus:border-primary focus:bg-white transition-all"
-              (change)="applyFilters()"
             >
               <option value="">Todos</option>
               <option value="Activo">Activo</option>
               <option value="Pendiente">Pendiente</option>
             </select>
           </div>
-          <button
-            class="border border-outline/20 px-md py-2 rounded-lg font-label-md text-label-md hover:bg-surface-container transition-colors"
-            (click)="clearFilters()"
-          >
-            Limpiar
-          </button>
+          <div class="flex items-center gap-2">
+            <button
+              class="bg-primary text-on-primary px-md py-2 rounded-lg font-label-md text-label-md hover:bg-primary/90 transition-colors"
+              (click)="applyFilters()"
+            >
+              Aplicar
+            </button>
+            <button
+              class="border border-outline/20 px-md py-2 rounded-lg font-label-md text-label-md hover:bg-surface-container transition-colors"
+              (click)="clearFilters()"
+            >
+              Limpiar
+            </button>
+          </div>
         </div>
       </div>
     }

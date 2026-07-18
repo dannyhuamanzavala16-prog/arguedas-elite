@@ -35,8 +35,11 @@ const ROWS_PER_PAGE = 7;
             <h3 class="font-headline-sm text-headline-sm text-on-surface">Listado de Docentes</h3>
           </div>
           <button class="flex items-center gap-2 border border-outline/20 px-sm py-1.5 rounded-lg text-label-md font-label-md hover:bg-surface-container transition-colors"
-                  (click)="showFilters = !showFilters">
+                  (click)="toggleFilters()">
             <span class="material-symbols-outlined text-[18px]">filter_list</span> Filtrar
+          </button>
+          <button class="flex items-center gap-2 border border-outline/20 px-sm py-1.5 rounded-lg text-label-md font-label-md hover:bg-surface-container transition-colors">
+            <span class="material-symbols-outlined text-[18px]">download</span> Exportar
           </button>
         </div>
 
@@ -46,14 +49,12 @@ const ROWS_PER_PAGE = 7;
               <div class="flex-1 min-w-[200px]">
                 <label class="font-label-sm text-label-sm text-on-surface-variant block mb-1">Buscar por nombre</label>
                 <input type="text" [(ngModel)]="filterNombre" placeholder="Escribe un nombre..."
-                       class="w-full bg-surface-container-lowest border border-outline-variant rounded-lg py-2 px-3 font-body-md text-body-md focus:border-primary focus:bg-white transition-all"
-                       (input)="applyFilters()" />
+                       class="w-full bg-surface-container-lowest border border-outline-variant rounded-lg py-2 px-3 font-body-md text-body-md focus:border-primary focus:bg-white transition-all" />
               </div>
               <div class="flex-1 min-w-[160px]">
                 <label class="font-label-sm text-label-sm text-on-surface-variant block mb-1">Especialidad</label>
                 <select [(ngModel)]="filterEspecialidad"
-                        class="w-full bg-surface-container-lowest border border-outline-variant rounded-lg py-2 px-3 font-body-md text-body-md focus:border-primary focus:bg-white transition-all"
-                        (change)="applyFilters()">
+                        class="w-full bg-surface-container-lowest border border-outline-variant rounded-lg py-2 px-3 font-body-md text-body-md focus:border-primary focus:bg-white transition-all">
                   <option value="">Todas</option>
                   @for (e of especialidades(); track e) { <option [value]="e">{{ e }}</option> }
                 </select>
@@ -61,15 +62,18 @@ const ROWS_PER_PAGE = 7;
               <div class="flex-1 min-w-[140px]">
                 <label class="font-label-sm text-label-sm text-on-surface-variant block mb-1">Estado</label>
                 <select [(ngModel)]="filterEstado"
-                        class="w-full bg-surface-container-lowest border border-outline-variant rounded-lg py-2 px-3 font-body-md text-body-md focus:border-primary focus:bg-white transition-all"
-                        (change)="applyFilters()">
+                        class="w-full bg-surface-container-lowest border border-outline-variant rounded-lg py-2 px-3 font-body-md text-body-md focus:border-primary focus:bg-white transition-all">
                   <option value="">Todos</option>
                   <option value="Activo">Activo</option>
                   <option value="Pendiente">Pendiente</option>
                 </select>
               </div>
-              <button class="border border-outline/20 px-md py-2 rounded-lg font-label-md text-label-md hover:bg-surface-container transition-colors"
-                      (click)="clearFilters()">Limpiar</button>
+              <div class="flex items-center gap-2">
+                <button class="bg-primary text-on-primary px-md py-2 rounded-lg font-label-md text-label-md hover:bg-primary/90 transition-colors"
+                        (click)="applyFilters()">Aplicar</button>
+                <button class="border border-outline/20 px-md py-2 rounded-lg font-label-md text-label-md hover:bg-surface-container transition-colors"
+                        (click)="clearFilters()">Limpiar</button>
+              </div>
             </div>
           </div>
         }
@@ -199,6 +203,9 @@ export class DocentesComponent {
   filterEspecialidad = '';
   filterEstado = '';
   showFilters = false;
+  appliedNombre = '';
+  appliedEspecialidad = '';
+  appliedEstado = '';
 
   formNombre = '';
   formEmail = '';
@@ -213,10 +220,10 @@ export class DocentesComponent {
 
   readonly filtered = computed(() => {
     let list = this.service.docentes();
-    const fn = this.filterNombre.toLowerCase().trim();
+    const fn = this.appliedNombre.toLowerCase().trim();
     if (fn) list = list.filter((d) => d.nombre.toLowerCase().includes(fn));
-    if (this.filterEspecialidad) list = list.filter((d) => d.especialidad === this.filterEspecialidad);
-    if (this.filterEstado) list = list.filter((d) => d.estado === this.filterEstado);
+    if (this.appliedEspecialidad) list = list.filter((d) => d.especialidad === this.appliedEspecialidad);
+    if (this.appliedEstado) list = list.filter((d) => d.estado === this.appliedEstado);
     return list;
   });
 
@@ -230,8 +237,29 @@ export class DocentesComponent {
   getAvatarColor(i: number) { return AVATAR_COLORS[i % AVATAR_COLORS.length]; }
   getInitials(name: string) { return name.split(' ').map(p => p[0]).join('').substring(0, 2).toUpperCase(); }
   onPageChange(page: number) { this.currentPage.set(page); }
-  applyFilters() { this.currentPage.set(1); }
-  clearFilters() { this.filterNombre = ''; this.filterEspecialidad = ''; this.filterEstado = ''; this.currentPage.set(1); }
+  toggleFilters(): void {
+    this.showFilters = !this.showFilters;
+    if (!this.showFilters) {
+      this.filterNombre = this.appliedNombre;
+      this.filterEspecialidad = this.appliedEspecialidad;
+      this.filterEstado = this.appliedEstado;
+    }
+  }
+  applyFilters() {
+    this.appliedNombre = this.filterNombre;
+    this.appliedEspecialidad = this.filterEspecialidad;
+    this.appliedEstado = this.filterEstado;
+    this.currentPage.set(1);
+  }
+  clearFilters() {
+    this.filterNombre = '';
+    this.filterEspecialidad = '';
+    this.filterEstado = '';
+    this.appliedNombre = '';
+    this.appliedEspecialidad = '';
+    this.appliedEstado = '';
+    this.currentPage.set(1);
+  }
 
   openCreateModal(): void {
     this.editandoCodigo = null; this.formNombre = ''; this.formEmail = ''; this.formEspecialidad = ''; this.formCursos = ''; this.formEstado = 'Activo';

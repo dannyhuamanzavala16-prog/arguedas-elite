@@ -33,6 +33,9 @@ export class EstudiantesComponent {
   filterCarrera = '';
   filterEstado = '';
   showFilters = false;
+  appliedNombre = '';
+  appliedCarrera = '';
+  appliedEstado = '';
 
   // Form
   formNombre = '';
@@ -50,10 +53,10 @@ export class EstudiantesComponent {
 
   readonly filtered = computed(() => {
     let list = this.service.estudiantes();
-    const fn = this.filterNombre.toLowerCase().trim();
+    const fn = this.appliedNombre.toLowerCase().trim();
     if (fn) list = list.filter((e) => e.nombre.toLowerCase().includes(fn));
-    if (this.filterCarrera) list = list.filter((e) => e.carrera === this.filterCarrera);
-    if (this.filterEstado) list = list.filter((e) => e.estado === this.filterEstado);
+    if (this.appliedCarrera) list = list.filter((e) => e.carrera === this.appliedCarrera);
+    if (this.appliedEstado) list = list.filter((e) => e.estado === this.appliedEstado);
     return list;
   });
 
@@ -85,9 +88,18 @@ export class EstudiantesComponent {
   // --- Filters ---
   toggleFilters(): void {
     this.showFilters = !this.showFilters;
+    if (!this.showFilters) {
+      // Al cerrar sin aplicar, restaurar valores aplicados
+      this.filterNombre = this.appliedNombre;
+      this.filterCarrera = this.appliedCarrera;
+      this.filterEstado = this.appliedEstado;
+    }
   }
 
   applyFilters(): void {
+    this.appliedNombre = this.filterNombre;
+    this.appliedCarrera = this.filterCarrera;
+    this.appliedEstado = this.filterEstado;
     this.currentPage.set(1);
   }
 
@@ -95,6 +107,9 @@ export class EstudiantesComponent {
     this.filterNombre = '';
     this.filterCarrera = '';
     this.filterEstado = '';
+    this.appliedNombre = '';
+    this.appliedCarrera = '';
+    this.appliedEstado = '';
     this.currentPage.set(1);
   }
 
