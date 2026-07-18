@@ -1,4 +1,4 @@
-import { Component, computed, inject, signal } from '@angular/core';
+import { Component, computed, inject } from '@angular/core';
 import { FormsModule } from '@angular/forms';
 import { AsistenciaService } from '../services/asistencia.service';
 import { ModalComponent } from '../../shared/components/modal/modal.component';
@@ -82,7 +82,7 @@ import { ToastService } from '../../shared/components/toast/toast.service';
         <div class="p-md border-b border-outline-variant/10 flex flex-col sm:flex-row gap-md justify-between bg-surface-bright">
           <div class="relative max-w-md w-full">
             <span class="material-symbols-outlined absolute left-sm top-1/2 -translate-y-1/2 text-on-surface-variant">search</span>
-            <input type="text" [(ngModel)]="searchQuery" (ngModelChange)="currentPage.set(1)"
+            <input type="text" [(ngModel)]="searchQuery"
                    class="w-full pl-xl pr-md py-sm rounded-lg border border-outline text-body-sm focus:border-primary focus:ring-2 focus:ring-primary/20 outline-none transition-all"
                    placeholder="Buscar estudiante por nombre o ID..." />
           </div>
@@ -196,7 +196,6 @@ export class AsistenciaComponent {
   private readonly toast = inject(ToastService);
 
   searchQuery = '';
-  currentPage = signal(1);
   isSaving = false;
 
   // Note modal
@@ -214,13 +213,7 @@ export class AsistenciaComponent {
     );
   });
 
-  readonly ROWS_PER_PAGE = 8;
-
-  readonly paginated = computed(() => {
-    const page = this.currentPage();
-    const start = (page - 1) * this.ROWS_PER_PAGE;
-    return this.filtered().slice(start, start + this.ROWS_PER_PAGE);
-  });
+  readonly paginated = computed(() => this.filtered());
 
   readonly stats = computed(() => this.service.getStats());
 
