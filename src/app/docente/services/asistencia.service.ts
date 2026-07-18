@@ -1,4 +1,5 @@
-import { Injectable, signal } from '@angular/core';
+import { Injectable, inject, signal } from '@angular/core';
+import { MockDataService, ASISTENCIA_CURSOS, ASISTENCIA_GRUPOS } from '../../shared/services/mock-data.service';
 
 export interface EstudianteAsistencia {
   id: string;
@@ -7,44 +8,25 @@ export interface EstudianteAsistencia {
   nota: string;
 }
 
-export interface AsistenciaEstado {
-  curso: string;
-  grupo: string;
-  fecha: string;
-  estudiantes: EstudianteAsistencia[];
-}
-
-const MOCK_ESTUDIANTES: EstudianteAsistencia[] = [
-  { id: 'MAT-001', nombre: 'Alfonso Herrera Ruiz', presente: false, nota: '' },
-  { id: 'MAT-002', nombre: 'Beatriz Mendoza Vega', presente: false, nota: '' },
-  { id: 'MAT-003', nombre: 'Carlos Santillán Diaz', presente: false, nota: '' },
-  { id: 'MAT-004', nombre: 'Diana Lujan Quispe', presente: false, nota: '' },
-  { id: 'MAT-005', nombre: 'Eduardo Ortiz Mora', presente: false, nota: '' },
-  { id: 'MAT-006', nombre: 'Flavia Torres Benites', presente: false, nota: '' },
-  { id: 'MAT-007', nombre: 'Gabriel Rojas Castro', presente: false, nota: '' },
-  { id: 'MAT-008', nombre: 'Helena Vargas Silva', presente: false, nota: '' },
-];
-
-const CURSOS = ['Cálculo Diferencial e Integral', 'Álgebra Lineal', 'Física Mecánica', 'Química General'];
-const GRUPOS = ['Grupo A', 'Grupo B'];
-
 @Injectable({ providedIn: 'root' })
 export class AsistenciaService {
+  private readonly mockData = inject(MockDataService);
+
   private readonly _estudiantes = signal<EstudianteAsistencia[]>(
-    MOCK_ESTUDIANTES.map((e) => ({ ...e }))
+    this.mockData.asistenciaEstudiantes
   );
   readonly estudiantes = this._estudiantes.asReadonly();
 
-  private readonly _curso = signal(CURSOS[0]);
-  private readonly _grupo = signal(GRUPOS[1]);
+  private readonly _curso = signal(ASISTENCIA_CURSOS[0]);
+  private readonly _grupo = signal(ASISTENCIA_GRUPOS[1]);
   readonly curso = this._curso.asReadonly();
   readonly grupo = this._grupo.asReadonly();
 
   get cursos(): string[] {
-    return [...CURSOS];
+    return [...ASISTENCIA_CURSOS];
   }
   get grupos(): string[] {
-    return [...GRUPOS];
+    return [...ASISTENCIA_GRUPOS];
   }
 
   actualizarCurso(curso: string): void {
@@ -85,7 +67,6 @@ export class AsistenciaService {
   guardar(): Promise<void> {
     return new Promise((resolve) => {
       setTimeout(() => {
-        // Mock: en el futuro esto persistirá en Firestore
         resolve();
       }, 1200);
     });

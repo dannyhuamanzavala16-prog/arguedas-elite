@@ -1,4 +1,5 @@
-import { Injectable, signal } from '@angular/core';
+import { Injectable, inject, signal } from '@angular/core';
+import { MockDataService, MATERIALES_DOCENTE_CATEGORIAS, ICON_MAP, COLOR_MAP_DOCENTE } from '../../shared/services/mock-data.service';
 
 export interface MaterialDocente {
   id: string;
@@ -9,20 +10,6 @@ export interface MaterialDocente {
   icono: string;
   colorClase: string;
 }
-
-const ICON_MAP: Record<string, string> = {
-  PDF: 'picture_as_pdf',
-  DOCX: 'description',
-  ZIP: 'folder_zip',
-  MP4: 'movie',
-};
-
-const COLOR_MAP: Record<string, string> = {
-  PDF: 'bg-error/10 text-error',
-  DOCX: 'bg-primary/10 text-primary',
-  ZIP: 'bg-tertiary/10 text-tertiary',
-  MP4: 'bg-secondary-container/20 text-secondary',
-};
 
 function parseFileType(nombre: string): MaterialDocente['tipo'] {
   const ext = nombre.split('.').pop()?.toUpperCase() || '';
@@ -35,43 +22,13 @@ function parseFileType(nombre: string): MaterialDocente['tipo'] {
 
 @Injectable({ providedIn: 'root' })
 export class MaterialesDocenteService {
+  private readonly mockData = inject(MockDataService);
   private readonly nextId = signal(100);
 
-  private readonly _materiales = signal<MaterialDocente[]>([
-    {
-      id: '1', nombre: 'Guía_Laboratorio_01_Termodinámica.pdf',
-      tipo: 'PDF', categoria: 'LECTURA', fecha: new Date(2023, 9, 12),
-      icono: 'picture_as_pdf', colorClase: 'bg-error/10 text-error',
-    },
-    {
-      id: '2', nombre: 'Silabo_Calculo_Diferencial_2024.docx',
-      tipo: 'DOCX', categoria: 'SILABO', fecha: new Date(2023, 9, 10),
-      icono: 'description', colorClase: 'bg-primary/10 text-primary',
-    },
-    {
-      id: '3', nombre: 'Dataset_Practica_Estadistica.zip',
-      tipo: 'ZIP', categoria: 'DATA', fecha: new Date(2023, 9, 8),
-      icono: 'folder_zip', colorClase: 'bg-tertiary/10 text-tertiary',
-    },
-    {
-      id: '4', nombre: 'Semana_04_Ejercicios_Resueltos.pdf',
-      tipo: 'PDF', categoria: 'EJERCICIOS', fecha: new Date(2023, 9, 5),
-      icono: 'picture_as_pdf', colorClase: 'bg-error/10 text-error',
-    },
-    {
-      id: '5', nombre: 'Rúbrica_Evaluación_Ensayo.docx',
-      tipo: 'DOCX', categoria: 'EVALUACIÓN', fecha: new Date(2023, 9, 1),
-      icono: 'description', colorClase: 'bg-primary/10 text-primary',
-    },
-    {
-      id: '6', nombre: 'Teoría_Integral_Definida.pdf',
-      tipo: 'PDF', categoria: 'TEORÍA', fecha: new Date(2023, 8, 28),
-      icono: 'picture_as_pdf', colorClase: 'bg-error/10 text-error',
-    },
-  ]);
+  private readonly _materiales = signal<MaterialDocente[]>(this.mockData.materialesDocente);
   readonly materiales = this._materiales.asReadonly();
 
-  readonly categorias = signal(['TEORÍA', 'LECTURA', 'PRÁCTICA', 'EVALUACIÓN', 'SILABO', 'DATA', 'EJERCICIOS']);
+  readonly categorias = signal<string[]>([...MATERIALES_DOCENTE_CATEGORIAS]);
 
   private generarId(): string {
     const id = this.nextId();
@@ -88,7 +45,7 @@ export class MaterialesDocenteService {
       categoria: categoria.toUpperCase(),
       fecha: new Date(),
       icono: ICON_MAP[tipo] || 'description',
-      colorClase: COLOR_MAP[tipo] || 'bg-primary/10 text-primary',
+      colorClase: COLOR_MAP_DOCENTE[tipo] || 'bg-primary/10 text-primary',
     };
     this._materiales.update((list) => [material, ...list]);
     return material;
@@ -99,7 +56,7 @@ export class MaterialesDocenteService {
     this._materiales.update((list) =>
       list.map((m) =>
         m.id === id
-          ? { ...m, nombre, categoria: categoria.toUpperCase(), tipo, icono: ICON_MAP[tipo] || 'description', colorClase: COLOR_MAP[tipo] || 'bg-primary/10 text-primary' }
+          ? { ...m, nombre, categoria: categoria.toUpperCase(), tipo, icono: ICON_MAP[tipo] || 'description', colorClase: COLOR_MAP_DOCENTE[tipo] || 'bg-primary/10 text-primary' }
           : m
       )
     );

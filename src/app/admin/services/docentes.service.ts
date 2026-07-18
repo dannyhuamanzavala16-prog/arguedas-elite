@@ -1,18 +1,11 @@
-import { Injectable, signal } from '@angular/core';
+import { Injectable, inject, signal } from '@angular/core';
 import { Docente } from '../../shared/models/docente.model';
-
-const MOCK: Docente[] = [
-  { codigo: '#DOC-2025-001', nombre: 'Ana Rojas', email: 'ana.rojas@elite.edu', especialidad: 'Matemáticas', cursos: ['Álgebra', 'Trigonometría'], estado: 'Activo' },
-  { codigo: '#DOC-2025-002', nombre: 'Carlos López', email: 'carlos.lopez@elite.edu', especialidad: 'Física', cursos: ['Física General', 'Física Avanzada'], estado: 'Activo' },
-  { codigo: '#DOC-2025-003', nombre: 'María García', email: 'maria.garcia@elite.edu', especialidad: 'Lenguaje', cursos: ['Lenguaje I', 'Literatura'], estado: 'Activo' },
-  { codigo: '#DOC-2025-004', nombre: 'José Martínez', email: 'jose.martinez@elite.edu', especialidad: 'Historia', cursos: ['Historia Universal', 'Historia del Perú'], estado: 'Pendiente' },
-  { codigo: '#DOC-2025-005', nombre: 'Rosa Huamán', email: 'rosa.h@elite.edu', especialidad: 'Biología', cursos: ['Biología General', 'Anatomía'], estado: 'Activo' },
-  { codigo: '#DOC-2025-006', nombre: 'Pedro Sánchez', email: 'pedro.sanchez@elite.edu', especialidad: 'Química', cursos: ['Química General', 'Química Orgánica'], estado: 'Activo' },
-];
+import { MockDataService } from '../../shared/services/mock-data.service';
 
 @Injectable({ providedIn: 'root' })
 export class DocentesService {
-  private readonly data = signal<Docente[]>([...MOCK]);
+  private readonly mockData = inject(MockDataService);
+  private readonly data = signal<Docente[]>(this.mockData.docentes);
   readonly docentes = this.data.asReadonly();
 
   private nextNum = 100;
