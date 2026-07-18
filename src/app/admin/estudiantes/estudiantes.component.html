@@ -1,0 +1,270 @@
+<div class="max-w-container-max mx-auto p-md md:p-lg">
+  <!-- Header -->
+  <div class="flex flex-col md:flex-row md:items-end justify-between gap-md mb-lg">
+    <div>
+      <h2 class="font-headline-xl text-headline-xl text-primary-container mb-2">Panel de Estudiantes</h2>
+      <p class="font-body-md text-body-md text-on-surface-variant">
+        Administra la base de datos de alumnos, asignaciones de salón y carreras académicas.
+      </p>
+    </div>
+    <button
+      class="bg-primary text-on-primary px-md py-sm rounded-lg font-label-md text-label-md flex items-center justify-center gap-2 shadow-lg shadow-primary/20 hover:scale-[1.02] transition-transform active:scale-95"
+      (click)="openCreateModal()"
+    >
+      <span class="material-symbols-outlined">person_add</span>
+      Registrar Estudiante
+    </button>
+  </div>
+
+  <!-- Table Card -->
+  <div class="bg-surface-container-lowest rounded-xl shadow-sm border border-outline/10 overflow-hidden">
+    <!-- Toolbar -->
+    <div class="p-md border-b border-outline/10 flex flex-col md:flex-row justify-between items-center gap-md">
+      <div class="flex items-center gap-sm">
+        <h3 class="font-headline-sm text-headline-sm text-on-surface">Listado de Alumnos</h3>
+        <span class="bg-surface-container-high text-on-surface-variant px-sm py-0.5 rounded-full font-label-sm text-label-sm">
+          {{ filtered().length }} mostrados
+        </span>
+      </div>
+      <div class="flex items-center gap-sm">
+        <button
+          class="flex items-center gap-2 border border-outline/20 px-sm py-1.5 rounded-lg text-label-md font-label-md hover:bg-surface-container transition-colors"
+          (click)="toggleFilters()"
+        >
+          <span class="material-symbols-outlined text-[18px]">filter_list</span>
+          Filtrar
+        </button>
+      </div>
+    </div>
+
+    <!-- Filter Panel -->
+    @if (showFilters) {
+      <div class="p-md bg-surface-container-low border-b border-outline/10">
+        <div class="flex flex-wrap items-end gap-md">
+          <div class="flex-1 min-w-[200px]">
+            <label class="font-label-sm text-label-sm text-on-surface-variant block mb-1">Buscar por nombre</label>
+            <input
+              type="text"
+              [(ngModel)]="filterNombre"
+              placeholder="Escribe un nombre..."
+              class="w-full bg-surface-container-lowest border border-outline-variant rounded-lg py-2 px-3 font-body-md text-body-md focus:border-primary focus:bg-white transition-all"
+              (input)="applyFilters()"
+            />
+          </div>
+          <div class="flex-1 min-w-[160px]">
+            <label class="font-label-sm text-label-sm text-on-surface-variant block mb-1">Carrera</label>
+            <select
+              [(ngModel)]="filterCarrera"
+              class="w-full bg-surface-container-lowest border border-outline-variant rounded-lg py-2 px-3 font-body-md text-body-md focus:border-primary focus:bg-white transition-all"
+              (change)="applyFilters()"
+            >
+              <option value="">Todas</option>
+              @for (c of carreras(); track c) {
+                <option [value]="c">{{ c }}</option>
+              }
+            </select>
+          </div>
+          <div class="flex-1 min-w-[140px]">
+            <label class="font-label-sm text-label-sm text-on-surface-variant block mb-1">Estado</label>
+            <select
+              [(ngModel)]="filterEstado"
+              class="w-full bg-surface-container-lowest border border-outline-variant rounded-lg py-2 px-3 font-body-md text-body-md focus:border-primary focus:bg-white transition-all"
+              (change)="applyFilters()"
+            >
+              <option value="">Todos</option>
+              <option value="Activo">Activo</option>
+              <option value="Pendiente">Pendiente</option>
+            </select>
+          </div>
+          <button
+            class="border border-outline/20 px-md py-2 rounded-lg font-label-md text-label-md hover:bg-surface-container transition-colors"
+            (click)="clearFilters()"
+          >
+            Limpiar
+          </button>
+        </div>
+      </div>
+    }
+
+    <!-- Table -->
+    <div class="overflow-x-auto">
+      <table class="w-full text-left border-collapse">
+        <thead>
+          <tr class="bg-surface-container-low">
+            <th class="px-md py-sm font-label-sm text-label-sm text-on-surface-variant uppercase tracking-wider">Código</th>
+            <th class="px-md py-sm font-label-sm text-label-sm text-on-surface-variant uppercase tracking-wider">Estudiante</th>
+            <th class="px-md py-sm font-label-sm text-label-sm text-on-surface-variant uppercase tracking-wider">Salón</th>
+            <th class="px-md py-sm font-label-sm text-label-sm text-on-surface-variant uppercase tracking-wider">Carrera</th>
+            <th class="px-md py-sm font-label-sm text-label-sm text-on-surface-variant uppercase tracking-wider">Estado</th>
+            <th class="px-md py-sm font-label-sm text-label-sm text-on-surface-variant uppercase tracking-wider text-right">Acciones</th>
+          </tr>
+        </thead>
+        <tbody class="divide-y divide-outline/5">
+          @for (est of paginated(); track est.codigo; let i = $index) {
+            <tr class="hover:bg-surface-container-low transition-colors group">
+              <td class="px-md py-md font-label-md text-label-md text-primary font-bold">{{ est.codigo }}</td>
+              <td class="px-md py-md">
+                <div class="flex items-center gap-sm">
+                  <div
+                    class="w-8 h-8 rounded-full {{ getAvatarColor(i) }} flex items-center justify-center font-bold text-xs"
+                  >
+                    {{ getInitials(est.nombre) }}
+                  </div>
+                  <div>
+                    <p class="font-label-md text-label-md text-on-surface">{{ est.nombre }}</p>
+                    <p class="font-body-sm text-body-sm text-on-surface-variant">{{ est.email }}</p>
+                  </div>
+                </div>
+              </td>
+              <td class="px-md py-md font-body-md text-body-md">{{ est.salon }}</td>
+              <td class="px-md py-md font-body-md text-body-md">{{ est.carrera }}</td>
+              <td class="px-md py-md">
+                <span
+                  class="px-sm py-1 rounded-full font-label-sm text-label-sm"
+                  [class.bg-green-100]="est.estado === 'Activo'"
+                  [class.text-green-700]="est.estado === 'Activo'"
+                  [class.bg-tertiary-fixed]="est.estado === 'Pendiente'"
+                  [class.text-on-tertiary-fixed-variant]="est.estado === 'Pendiente'"
+                >
+                  {{ est.estado }}
+                </span>
+              </td>
+              <td class="px-md py-md text-right">
+                <div class="flex justify-end gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
+                  <button
+                    class="w-9 h-9 flex items-center justify-center rounded-lg text-primary hover:bg-primary/10 transition-colors"
+                    title="Editar"
+                    (click)="openEditModal(est)"
+                  >
+                    <span class="material-symbols-outlined">edit</span>
+                  </button>
+                  <button
+                    class="w-9 h-9 flex items-center justify-center rounded-lg text-error hover:bg-error/10 transition-colors"
+                    title="Eliminar"
+                    (click)="confirmDelete(est.codigo)"
+                  >
+                    <span class="material-symbols-outlined">delete</span>
+                  </button>
+                </div>
+              </td>
+            </tr>
+          } @empty {
+            <tr>
+              <td colspan="6" class="text-center py-xl text-on-surface-variant font-body-md text-body-md">
+                No hay estudiantes registrados
+              </td>
+            </tr>
+          }
+        </tbody>
+      </table>
+    </div>
+
+    <!-- Pagination -->
+    <div class="p-md bg-surface-container-low flex flex-col sm:flex-row justify-between items-center gap-md">
+      <span class="font-body-sm text-body-sm text-on-surface-variant">
+        Mostrando {{ paginated().length }} de {{ totalItems() }} estudiantes
+      </span>
+      <app-pagination
+        [totalItems]="totalItems()"
+        [itemsPerPage]="7"
+        [currentPage]="currentPage()"
+        (pageChange)="onPageChange($event)"
+      />
+    </div>
+  </div>
+
+  <!-- Modal Form -->
+  <app-modal [isOpen]="showModal" (close)="closeModal()">
+    <div class="p-md border-b border-outline/10 flex justify-between items-center">
+      <h3 class="font-headline-sm text-headline-sm text-on-surface">
+        {{ editandoCodigo ? 'Editar Estudiante' : 'Registrar Estudiante' }}
+      </h3>
+      <button
+        class="w-9 h-9 flex items-center justify-center rounded-lg text-on-surface-variant hover:bg-surface-container transition-colors"
+        (click)="closeModal()"
+      >
+        <span class="material-symbols-outlined">close</span>
+      </button>
+    </div>
+
+    <form class="p-md space-y-md" #form="ngForm" (ngSubmit)="onSubmit()">
+      <div class="grid grid-cols-1 md:grid-cols-2 gap-md">
+        <div class="space-y-1">
+          <label class="font-label-sm text-label-sm text-on-surface-variant block">Nombre completo</label>
+          <input
+            type="text"
+            [(ngModel)]="formNombre"
+            name="nombre"
+            required
+            placeholder="Ej: María García"
+            class="w-full bg-surface-container-low border border-outline-variant rounded-lg py-2.5 px-3 font-body-md text-body-md focus:border-primary focus:bg-white transition-all"
+          />
+        </div>
+        <div class="space-y-1">
+          <label class="font-label-sm text-label-sm text-on-surface-variant block">Email</label>
+          <input
+            type="email"
+            [(ngModel)]="formEmail"
+            name="email"
+            required
+            placeholder="correo@elite.edu"
+            class="w-full bg-surface-container-low border border-outline-variant rounded-lg py-2.5 px-3 font-body-md text-body-md focus:border-primary focus:bg-white transition-all"
+          />
+        </div>
+        <div class="space-y-1">
+          <label class="font-label-sm text-label-sm text-on-surface-variant block">Salón</label>
+          <input
+            type="text"
+            [(ngModel)]="formSalon"
+            name="salon"
+            required
+            placeholder="Ej: Aula 301 - A"
+            class="w-full bg-surface-container-low border border-outline-variant rounded-lg py-2.5 px-3 font-body-md text-body-md focus:border-primary focus:bg-white transition-all"
+          />
+        </div>
+        <div class="space-y-1">
+          <label class="font-label-sm text-label-sm text-on-surface-variant block">Carrera</label>
+          <select
+            [(ngModel)]="formCarrera"
+            name="carrera"
+            required
+            class="w-full bg-surface-container-low border border-outline-variant rounded-lg py-2.5 px-3 font-body-md text-body-md focus:border-primary focus:bg-white transition-all"
+          >
+            <option value="">Seleccionar...</option>
+            @for (c of carreras(); track c) {
+              <option [value]="c">{{ c }}</option>
+            }
+          </select>
+        </div>
+        <div class="space-y-1">
+          <label class="font-label-sm text-label-sm text-on-surface-variant block">Estado</label>
+          <select
+            [(ngModel)]="formEstado"
+            name="estado"
+            required
+            class="w-full bg-surface-container-low border border-outline-variant rounded-lg py-2.5 px-3 font-body-md text-body-md focus:border-primary focus:bg-white transition-all"
+          >
+            <option value="Activo">Activo</option>
+            <option value="Pendiente">Pendiente</option>
+          </select>
+        </div>
+      </div>
+      <div class="flex justify-end gap-2 pt-sm border-t border-outline/10">
+        <button
+          type="button"
+          class="border border-outline/20 px-md py-2.5 rounded-lg font-label-md text-label-md hover:bg-surface-container transition-colors"
+          (click)="closeModal()"
+        >
+          Cancelar
+        </button>
+        <button
+          type="submit"
+          class="bg-primary text-on-primary px-md py-2.5 rounded-lg font-label-md text-label-md hover:bg-primary/90 transition-colors flex items-center gap-2"
+        >
+          <span class="material-symbols-outlined" style="font-size: 18px;">save</span>
+          {{ editandoCodigo ? 'Guardar' : 'Registrar' }}
+        </button>
+      </div>
+    </form>
+  </app-modal>
+</div>
