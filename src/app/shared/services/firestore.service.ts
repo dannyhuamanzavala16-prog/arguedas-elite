@@ -30,8 +30,8 @@ import { Observable, map } from 'rxjs';
  * }
  * ```
  */
-@Injectable({ providedIn: 'root' })
-export class FirestoreCollectionService<T extends { id?: string }> {
+@Injectable()
+export abstract class FirestoreCollectionService<T extends { id?: string }> {
   protected readonly firestore = inject(Firestore);
   protected readonly collectionRef;
 

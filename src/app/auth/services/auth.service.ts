@@ -2,6 +2,7 @@ import { Injectable, inject, signal } from '@angular/core';
 import { Auth, signInWithEmailAndPassword, signOut, onAuthStateChanged, User } from '@angular/fire/auth';
 import { Firestore, doc, docData } from '@angular/fire/firestore';
 import { Observable, from, map, of, switchMap } from 'rxjs';
+export type { UserRole } from '../../shared/models/usuario.model';
 import { UserRole, Usuario } from '../../shared/models/usuario.model';
 
 export interface AuthState {

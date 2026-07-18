@@ -38,13 +38,16 @@ export class LoginComponent {
   onSubmit(): void {
     this.hideError();
 
-    this.authService.login(this.username, this.password).subscribe({
+    const email = `${this.username.trim()}@arguedas.edu.pe`;
+
+    this.authService.login(email, this.password).subscribe({
       next: (success) => {
         if (success) {
           this.router.navigateByUrl(this.authService.getDefaultRoute());
         }
       },
       error: (err: FirebaseError) => {
+        console.error('[Login] Firebase error code:', err.code, err);
         const msg = this.getFirebaseErrorMessage(err.code);
         this.showErrorMessage(msg);
       },
@@ -53,14 +56,14 @@ export class LoginComponent {
 
   private getFirebaseErrorMessage(code: string): string {
     const messages: Record<string, string> = {
-      'auth/user-not-found': 'No existe una cuenta con este correo',
+      'auth/user-not-found': 'Usuario no encontrado',
       'auth/wrong-password': 'Contraseña incorrecta',
-      'auth/invalid-credential': 'Correo o contraseña incorrectos',
-      'auth/invalid-email': 'Correo electrónico inválido',
-      'auth/too-many-requests': 'Demasiados intentos. Intenta de nuevo más tarde',
+      'auth/invalid-credential': 'Usuario o contraseña incorrectos',
+      'auth/invalid-email': 'Usuario inválido',
+      'auth/too-many-requests': 'Demasiados intentos. Intentá de nuevo más tarde',
       'auth/user-disabled': 'Esta cuenta ha sido deshabilitada',
     };
-    return messages[code] || 'Error de autenticación. Intenta de nuevo';
+    return messages[code] || 'Error de autenticación. Intentá de nuevo';
   }
 
   togglePassword(

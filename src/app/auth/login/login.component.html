@@ -30,16 +30,16 @@
           <!-- Email -->
           <div class="space-y-xs">
             <label class="font-label-md text-label-md text-on-surface-variant block px-xs" for="username">
-              Correo electrónico
+              Usuario
             </label>
             <div class="relative">
               <span class="material-symbols-outlined absolute left-4 top-1/2 -translate-y-1/2 text-outline">person</span>
               <input
                 id="username"
                 name="username"
-                type="email"
+                type="text"
                 [(ngModel)]="username"
-                placeholder="correo@arguedas.edu.pe"
+                autocomplete="username"
                 class="w-full bg-surface-container-low border border-outline-variant rounded-lg py-3 pl-12 pr-4 font-body-md text-body-md transition-all focus:border-primary focus:bg-white"
                 (input)="hideError()"
               >
