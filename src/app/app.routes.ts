@@ -7,7 +7,7 @@ export const routes: Routes = [
 
   // Admin routes (lazy-loaded when we create the module)
   {
-    path: 'admin',
+    path: 'administrador',
     canActivate: [authGuard],
     loadChildren: () => import('./admin/admin.routes').then((m) => m.adminRoutes),
   },

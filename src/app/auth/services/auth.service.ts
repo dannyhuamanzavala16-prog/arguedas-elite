@@ -24,9 +24,9 @@ export class AuthService {
   readonly authState = this.state.asReadonly();
 
   private readonly roleRoutes: Record<UserRole, string> = {
-    admin: '/admin/estudiantes',
-    docente: '/docente/asistencia',
-    estudiante: '/estudiante/asistencia',
+    admin: '/administrador/dashboard',
+    docente: '/docente/dashboard',
+    estudiante: '/estudiante/dashboard',
   };
 
   constructor() {

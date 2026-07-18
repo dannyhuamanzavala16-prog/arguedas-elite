@@ -13,11 +13,11 @@ export class AdminLayoutComponent {
   protected auth = inject(AuthService);
 
   readonly navLinks = [
-    { path: '/admin/dashboard', icon: 'dashboard', label: 'Dashboard' },
-    { path: '/admin/estudiantes', icon: 'school', label: 'Estudiantes' },
-    { path: '/admin/docentes', icon: 'group', label: 'Docentes' },
-    { path: '/admin/materiales', icon: 'book', label: 'Materiales' },
-    { path: '/admin/perfil', icon: 'person', label: 'Perfil' },
+    { path: '/administrador/dashboard', icon: 'dashboard', label: 'Dashboard' },
+    { path: '/administrador/estudiantes', icon: 'school', label: 'Estudiantes' },
+    { path: '/administrador/docentes', icon: 'group', label: 'Docentes' },
+    { path: '/administrador/materiales', icon: 'book', label: 'Materiales' },
+    { path: '/administrador/perfil', icon: 'person', label: 'Perfil' },
   ];
 
   get displayName(): string {
