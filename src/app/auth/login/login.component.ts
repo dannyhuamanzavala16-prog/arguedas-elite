@@ -2,6 +2,7 @@ import { Component, HostListener } from '@angular/core';
 import { Router } from '@angular/router';
 import { FormsModule } from '@angular/forms';
 import { AuthService } from '../services/auth.service';
+import { FirebaseError } from 'firebase/app';
 
 @Component({
   selector: 'app-login',
@@ -37,13 +38,29 @@ export class LoginComponent {
   onSubmit(): void {
     this.hideError();
 
-    this.authService.login(this.username, this.password).subscribe((success) => {
-      if (success) {
-        this.router.navigateByUrl(this.authService.getDefaultRoute());
-      } else {
-        this.showErrorMessage('Usuario o contraseña incorrectos');
-      }
+    this.authService.login(this.username, this.password).subscribe({
+      next: (success) => {
+        if (success) {
+          this.router.navigateByUrl(this.authService.getDefaultRoute());
+        }
+      },
+      error: (err: FirebaseError) => {
+        const msg = this.getFirebaseErrorMessage(err.code);
+        this.showErrorMessage(msg);
+      },
     });
+  }
+
+  private getFirebaseErrorMessage(code: string): string {
+    const messages: Record<string, string> = {
+      'auth/user-not-found': 'No existe una cuenta con este correo',
+      'auth/wrong-password': 'Contraseña incorrecta',
+      'auth/invalid-credential': 'Correo o contraseña incorrectos',
+      'auth/invalid-email': 'Correo electrónico inválido',
+      'auth/too-many-requests': 'Demasiados intentos. Intenta de nuevo más tarde',
+      'auth/user-disabled': 'Esta cuenta ha sido deshabilitada',
+    };
+    return messages[code] || 'Error de autenticación. Intenta de nuevo';
   }
 
   togglePassword(

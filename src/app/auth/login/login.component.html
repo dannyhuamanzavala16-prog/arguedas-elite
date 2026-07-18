@@ -27,19 +27,19 @@
 
         <!-- Form -->
         <form class="w-full space-y-md" (ngSubmit)="onSubmit()" #loginForm="ngForm">
-          <!-- Username -->
+          <!-- Email -->
           <div class="space-y-xs">
             <label class="font-label-md text-label-md text-on-surface-variant block px-xs" for="username">
-              Nombre de usuario
+              Correo electrónico
             </label>
             <div class="relative">
               <span class="material-symbols-outlined absolute left-4 top-1/2 -translate-y-1/2 text-outline">person</span>
               <input
                 id="username"
                 name="username"
-                type="text"
+                type="email"
                 [(ngModel)]="username"
-                placeholder="Ingresa tu usuario"
+                placeholder="correo@arguedas.edu.pe"
                 class="w-full bg-surface-container-low border border-outline-variant rounded-lg py-3 pl-12 pr-4 font-body-md text-body-md transition-all focus:border-primary focus:bg-white"
                 (input)="hideError()"
               >
