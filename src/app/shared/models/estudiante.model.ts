@@ -1,4 +1,6 @@
 export interface Estudiante {
+  id?: string;
+  createdAt?: string;
   codigo: string;
   nombre: string;
   email: string;

@@ -1,35 +1,37 @@
-import { Injectable, inject, signal } from '@angular/core';
+import { Injectable } from '@angular/core';
+import { toSignal } from '@angular/core/rxjs-interop';
+import { doc, setDoc } from '@angular/fire/firestore';
 import { Docente } from '../../shared/models/docente.model';
-import { MockDataService } from '../../shared/services/mock-data.service';
+import { FirestoreCollectionService } from '../../shared/services/firestore.service';
 
 @Injectable({ providedIn: 'root' })
-export class DocentesService {
-  private readonly mockData = inject(MockDataService);
-  private readonly data = signal<Docente[]>(this.mockData.docentes);
-  readonly docentes = this.data.asReadonly();
+export class DocentesService extends FirestoreCollectionService<Docente> {
+  readonly docentes = toSignal(this.getAll(), { initialValue: [] as Docente[] });
 
-  private nextNum = 100;
-
-  private getNextCodigo(): string {
-    this.nextNum++;
-    return `#DOC-2025-${this.nextNum}`;
+  constructor() {
+    super('docentes');
   }
 
-  crear(doc: Omit<Docente, 'codigo'>): void {
-    this.data.update((list) => [...list, { ...doc, codigo: this.getNextCodigo() }]);
+  async crear(data: Omit<Docente, 'codigo' | 'createdAt'>): Promise<void> {
+    const suffix = Date.now().toString().slice(-6);
+    const codigo = `#DOC-2025-${suffix}`;
+    const docId = `DOC-2025-${suffix}`;
+    await setDoc(doc(this.firestore, 'docentes', docId), {
+      ...data,
+      codigo,
+      createdAt: new Date().toISOString(),
+    });
   }
 
-  actualizar(codigo: string, cambios: Partial<Docente>): void {
-    this.data.update((list) =>
-      list.map((d) => (d.codigo === codigo ? { ...d, ...cambios } : d))
-    );
+  async actualizar(codigo: string, cambios: Partial<Docente>): Promise<void> {
+    await this.update(codigo.replace('#', ''), cambios);
   }
 
-  eliminar(codigo: string): void {
-    this.data.update((list) => list.filter((d) => d.codigo !== codigo));
+  async eliminar(codigo: string): Promise<void> {
+    await this.delete(codigo.replace('#', ''));
   }
 
   getEspecialidades(): string[] {
-    return [...new Set(this.data().map((d) => d.especialidad))];
+    return [...new Set(this.docentes().map((d) => d.especialidad))];
   }
 }

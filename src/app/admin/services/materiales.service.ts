@@ -1,38 +1,48 @@
-import { Injectable, inject, signal } from '@angular/core';
+import { Injectable } from '@angular/core';
+import { toSignal } from '@angular/core/rxjs-interop';
 import { Material } from '../../shared/models/material.model';
-import { MockDataService, ICON_MAP, COLOR_MAP, detectarTipoArchivo, randomSize } from '../../shared/services/mock-data.service';
+import {
+  FirestoreCollectionService,
+} from '../../shared/services/firestore.service';
+import {
+  ICON_MAP,
+  COLOR_MAP,
+  detectarTipoArchivo,
+  randomSize,
+} from '../../shared/services/mock-data.service';
 
 @Injectable({ providedIn: 'root' })
-export class MaterialesService {
-  private readonly mockData = inject(MockDataService);
-  private readonly data = signal<Material[]>(this.mockData.materiales);
-  readonly materiales = this.data.asReadonly();
-  private nextId = 100;
+export class MaterialesService extends FirestoreCollectionService<Material> {
+  readonly materiales = toSignal(this.getAll(), { initialValue: [] as Material[] });
 
-  crear(nombre: string, curso: string): void {
+  constructor() {
+    super('materiales');
+  }
+
+  async crear(nombre: string, curso: string): Promise<void> {
     const tipo = detectarTipoArchivo(nombre);
-    const material: Material = {
-      id: String(this.nextId++),
+    const material = {
       nombre,
       curso,
       tipo,
       tamano: randomSize(),
-      icono: ICON_MAP[tipo] || 'description',
-      colorClase: COLOR_MAP[tipo] || 'bg-primary-container/10 text-primary',
+      icono: ICON_MAP[tipo] ?? 'description',
+      colorClase: COLOR_MAP[tipo] ?? 'bg-primary-container/10 text-primary',
       fecha: new Date().toISOString().split('T')[0],
+      createdAt: new Date().toISOString(),
     };
-    this.data.update((list) => [material, ...list]);
+    await this.create(material as any);
   }
 
-  eliminar(id: string): void {
-    this.data.update((list) => list.filter((m) => m.id !== id));
+  async eliminar(id: string): Promise<void> {
+    await this.delete(id);
   }
 
   getCursos(): string[] {
-    return [...new Set(this.data().map((m) => m.curso))];
+    return [...new Set(this.materiales().map((m) => m.curso))];
   }
 
   getTipos(): string[] {
-    return [...new Set(this.data().map((m) => m.tipo))];
+    return [...new Set(this.materiales().map((m) => m.tipo))];
   }
 }

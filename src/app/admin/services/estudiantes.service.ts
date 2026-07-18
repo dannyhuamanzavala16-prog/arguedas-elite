@@ -1,38 +1,43 @@
-import { Injectable, inject, signal } from '@angular/core';
+import { Injectable } from '@angular/core';
+import { toSignal } from '@angular/core/rxjs-interop';
+import { doc, setDoc } from '@angular/fire/firestore';
 import { Estudiante } from '../../shared/models/estudiante.model';
-import { MockDataService } from '../../shared/services/mock-data.service';
+import { FirestoreCollectionService } from '../../shared/services/firestore.service';
 
 @Injectable({ providedIn: 'root' })
-export class EstudiantesService {
-  private readonly mockData = inject(MockDataService);
-  private readonly data = signal<Estudiante[]>(this.mockData.estudiantes);
-  readonly estudiantes = this.data.asReadonly();
-  private nextNum = 300;
+export class EstudiantesService extends FirestoreCollectionService<Estudiante> {
+  /** Lista reactiva — se actualiza automáticamente cuando Firestore cambia */
+  readonly estudiantes = toSignal(this.getAll(), { initialValue: [] as Estudiante[] });
 
-  private getNextCodigo(): string {
-    this.nextNum++;
-    return `#EA-2025-${this.nextNum}`;
+  constructor() {
+    super('estudiantes');
   }
 
-  crear(est: Omit<Estudiante, 'codigo'>): void {
-    this.data.update((list) => [...list, { ...est, codigo: this.getNextCodigo() }]);
+  /** Usa `codigo` sin `#` como doc ID para poder actualizar/eliminar por código */
+  async crear(est: Omit<Estudiante, 'codigo' | 'createdAt'>): Promise<void> {
+    const suffix = Date.now().toString().slice(-6);
+    const codigo = `#EA-2025-${suffix}`;
+    const docId = `EA-2025-${suffix}`;
+    await setDoc(doc(this.firestore, 'estudiantes', docId), {
+      ...est,
+      codigo,
+      createdAt: new Date().toISOString(),
+    });
   }
 
-  actualizar(codigo: string, cambios: Partial<Estudiante>): void {
-    this.data.update((list) =>
-      list.map((e) => (e.codigo === codigo ? { ...e, ...cambios } : e))
-    );
+  async actualizar(codigo: string, cambios: Partial<Estudiante>): Promise<void> {
+    await this.update(codigo.replace('#', ''), cambios);
   }
 
-  eliminar(codigo: string): void {
-    this.data.update((list) => list.filter((e) => e.codigo !== codigo));
+  async eliminar(codigo: string): Promise<void> {
+    await this.delete(codigo.replace('#', ''));
   }
 
   getByCodigo(codigo: string): Estudiante | undefined {
-    return this.data().find((e) => e.codigo === codigo);
+    return this.estudiantes().find((e) => e.codigo === codigo);
   }
 
   getCarreras(): string[] {
-    return [...new Set(this.data().map((e) => e.carrera))];
+    return [...new Set(this.estudiantes().map((e) => e.carrera))];
   }
 }
