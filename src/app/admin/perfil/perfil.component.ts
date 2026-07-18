@@ -1,5 +1,14 @@
-import { Component, inject } from '@angular/core';
+import { Component, computed, inject, OnInit, signal } from '@angular/core';
 import { FormsModule } from '@angular/forms';
+import {
+  Auth,
+  updatePassword,
+  updateProfile,
+  reauthenticateWithCredential,
+  EmailAuthProvider,
+  User,
+} from '@angular/fire/auth';
+import { Firestore, doc, updateDoc } from '@angular/fire/firestore';
 import { AuthService } from '../../auth/services/auth.service';
 import { ModalComponent } from '../../shared/components/modal/modal.component';
 import { ToastService } from '../../shared/components/toast/toast.service';
@@ -10,50 +19,69 @@ import { ToastService } from '../../shared/components/toast/toast.service';
   imports: [FormsModule, ModalComponent],
   template: `
     <div class="max-w-3xl mx-auto p-md md:p-lg space-y-lg">
+
       <!-- Profile Header -->
       <div class="bg-surface-container-lowest rounded-xl shadow-sm border border-outline/10 overflow-hidden">
         <div class="bg-primary h-24"></div>
-        <div class="px-md pb-md -mt-12">
-          <div class="w-24 h-24 rounded-full bg-primary-container flex items-center justify-center text-on-primary-container border-4 border-surface-container-lowest shadow-lg mx-auto">
-            <span class="material-symbols-outlined" style="font-size: 48px;">person</span>
+        <div class="px-md pb-md -mt-12 flex flex-col items-center">
+          <div class="w-24 h-24 rounded-full bg-primary-container flex items-center justify-center text-on-primary-container border-4 border-surface-container-lowest shadow-lg">
+            <span class="material-symbols-outlined" style="font-size: 48px; font-variation-settings: 'FILL' 1;">person</span>
           </div>
-          <h2 class="font-headline-lg text-headline-lg text-center text-on-surface mt-sm">{{ displayName }}</h2>
-          <p class="font-body-md text-body-md text-center text-on-surface-variant">{{ authService.getUsername() || 'usuario' }}&#64;elite.edu</p>
+          <h2 class="font-headline-lg text-headline-lg text-on-surface mt-sm">{{ usuario()?.nombre || 'Usuario' }}</h2>
+          <p class="font-body-md text-body-md text-on-surface-variant">{{ usuario()?.email }}</p>
+          <span class="mt-xs inline-flex items-center gap-1 bg-primary/10 text-primary rounded-full px-3 py-1 font-label-sm text-label-sm capitalize">
+            <span class="material-symbols-outlined" style="font-size: 14px;">verified</span>
+            {{ usuario()?.role || 'admin' }}
+          </span>
         </div>
       </div>
 
       <!-- Info Cards -->
       <div class="grid grid-cols-1 md:grid-cols-2 gap-gutter">
+        <!-- Información personal -->
         <div class="bg-surface-container-lowest rounded-xl border border-outline/10 p-md">
           <h3 class="font-label-md text-label-md text-on-surface-variant uppercase tracking-wider mb-md">Información Personal</h3>
           <div class="space-y-md">
             <div>
               <p class="font-label-sm text-label-sm text-on-surface-variant">Nombre completo</p>
-              <p class="font-body-md text-body-md text-on-surface bg-surface-container-low border border-outline/10 rounded-lg px-3 py-2 mt-1">{{ displayName }}</p>
+              <p class="font-body-md text-body-md text-on-surface bg-surface-container-low border border-outline/10 rounded-lg px-3 py-2 mt-1">
+                {{ usuario()?.nombre || '—' }}
+              </p>
             </div>
             <div>
               <p class="font-label-sm text-label-sm text-on-surface-variant">Correo electrónico</p>
-              <p class="font-body-md text-body-md text-on-surface bg-surface-container-low border border-outline/10 rounded-lg px-3 py-2 mt-1">{{ authService.getUsername() || 'usuario' }}&#64;elite.edu</p>
+              <p class="font-body-md text-body-md text-on-surface bg-surface-container-low border border-outline/10 rounded-lg px-3 py-2 mt-1">
+                {{ usuario()?.email || '—' }}
+              </p>
             </div>
             <div>
               <p class="font-label-sm text-label-sm text-on-surface-variant">Rol</p>
-              <p class="font-body-md text-body-md text-on-surface bg-surface-container-low border border-outline/10 rounded-lg px-3 py-2 mt-1 capitalize">{{ authService.getUserRole() }}</p>
+              <p class="font-body-md text-body-md text-on-surface bg-surface-container-low border border-outline/10 rounded-lg px-3 py-2 mt-1 capitalize">
+                {{ usuario()?.role || 'admin' }}
+              </p>
             </div>
           </div>
         </div>
 
+        <!-- Acciones -->
         <div class="bg-surface-container-lowest rounded-xl border border-outline/10 p-md">
           <h3 class="font-label-md text-label-md text-on-surface-variant uppercase tracking-wider mb-md">Acciones</h3>
           <div class="flex flex-col gap-md">
             <button class="w-full flex items-center gap-3 p-sm border border-outline/20 rounded-lg hover:bg-surface-container-low transition-colors text-left"
-                    (click)="showEditProfile = true">
+                    (click)="openEditProfile()">
               <span class="material-symbols-outlined text-primary">edit</span>
-              <div><p class="font-label-md text-label-md text-on-surface">Editar Perfil</p><p class="font-body-sm text-body-sm text-on-surface-variant">Actualiza tu nombre y correo</p></div>
+              <div>
+                <p class="font-label-md text-label-md text-on-surface">Editar Perfil</p>
+                <p class="font-body-sm text-body-sm text-on-surface-variant">Actualiza tu nombre</p>
+              </div>
             </button>
             <button class="w-full flex items-center gap-3 p-sm border border-outline/20 rounded-lg hover:bg-surface-container-low transition-colors text-left"
-                    (click)="showChangePassword = true">
+                    (click)="openChangePassword()">
               <span class="material-symbols-outlined text-tertiary">lock</span>
-              <div><p class="font-label-md text-label-md text-on-surface">Cambiar Contraseña</p><p class="font-body-sm text-body-sm text-on-surface-variant">Actualiza tu contraseña de acceso</p></div>
+              <div>
+                <p class="font-label-md text-label-md text-on-surface">Cambiar Contraseña</p>
+                <p class="font-body-sm text-body-sm text-on-surface-variant">Actualiza tu contraseña de acceso</p>
+              </div>
             </button>
           </div>
         </div>
@@ -63,16 +91,17 @@ import { ToastService } from '../../shared/components/toast/toast.service';
       <app-modal [isOpen]="showEditProfile" (close)="showEditProfile = false">
         <div class="p-md border-b border-outline/10 flex justify-between items-center">
           <h3 class="font-headline-sm text-headline-sm text-on-surface">Editar Perfil</h3>
-          <button class="w-9 h-9 flex items-center justify-center rounded-lg text-on-surface-variant hover:bg-surface-container transition-colors" (click)="showEditProfile = false">
+          <button class="w-9 h-9 flex items-center justify-center rounded-lg text-on-surface-variant hover:bg-surface-container transition-colors"
+                  (click)="showEditProfile = false">
             <span class="material-symbols-outlined">close</span>
           </button>
         </div>
         <form class="p-md space-y-md" (ngSubmit)="handleEditProfile()">
-          @if (epFeedback) {
+          @if (epFeedback()) {
             <div class="text-body-sm font-body-sm text-center rounded-lg px-4 py-2"
-                 [class.text-green-800]="epSuccess" [class.bg-green-100]="epSuccess"
-                 [class.text-red-800]="!epSuccess" [class.bg-red-100]="!epSuccess">
-              {{ epFeedback }}
+                 [class.text-green-800]="epSuccess()" [class.bg-green-100]="epSuccess()"
+                 [class.text-red-800]="!epSuccess()" [class.bg-red-100]="!epSuccess()">
+              {{ epFeedback() }}
             </div>
           }
           <div class="space-y-1">
@@ -80,14 +109,19 @@ import { ToastService } from '../../shared/components/toast/toast.service';
             <input type="text" [(ngModel)]="epNombre" name="epNombre" required
                    class="w-full bg-surface-container-low border border-outline-variant rounded-lg py-2.5 px-3 font-body-md text-body-md focus:border-primary focus:bg-white transition-all" />
           </div>
-          <div class="space-y-1">
-            <label class="font-label-sm text-label-sm text-on-surface-variant block">Email</label>
-            <input type="email" [(ngModel)]="epEmail" name="epEmail" required
-                   class="w-full bg-surface-container-low border border-outline-variant rounded-lg py-2.5 px-3 font-body-md text-body-md focus:border-primary focus:bg-white transition-all" />
-          </div>
           <div class="flex justify-end gap-2 pt-sm border-t border-outline/10">
-            <button type="button" class="border border-outline/20 px-md py-2.5 rounded-lg font-label-md text-label-md hover:bg-surface-container transition-colors" (click)="showEditProfile = false">Cancelar</button>
-            <button type="submit" class="bg-primary text-on-primary px-md py-2.5 rounded-lg font-label-md text-label-md hover:bg-primary/90 transition-colors">Guardar</button>
+            <button type="button"
+                    class="border border-outline/20 px-md py-2.5 rounded-lg font-label-md text-label-md hover:bg-surface-container transition-colors"
+                    (click)="showEditProfile = false">Cancelar</button>
+            <button type="submit"
+                    class="bg-primary text-on-primary px-md py-2.5 rounded-lg font-label-md text-label-md hover:bg-primary/90 transition-colors flex items-center gap-2 disabled:opacity-60"
+                    [disabled]="epSaving()">
+              @if (epSaving()) {
+                <span class="material-symbols-outlined animate-spin" style="font-size:18px">progress_activity</span> Guardando...
+              } @else {
+                Guardar
+              }
+            </button>
           </div>
         </form>
       </app-modal>
@@ -96,16 +130,17 @@ import { ToastService } from '../../shared/components/toast/toast.service';
       <app-modal [isOpen]="showChangePassword" (close)="showChangePassword = false">
         <div class="p-md border-b border-outline/10 flex justify-between items-center">
           <h3 class="font-headline-sm text-headline-sm text-on-surface">Cambiar Contraseña</h3>
-          <button class="w-9 h-9 flex items-center justify-center rounded-lg text-on-surface-variant hover:bg-surface-container transition-colors" (click)="showChangePassword = false">
+          <button class="w-9 h-9 flex items-center justify-center rounded-lg text-on-surface-variant hover:bg-surface-container transition-colors"
+                  (click)="showChangePassword = false">
             <span class="material-symbols-outlined">close</span>
           </button>
         </div>
         <form class="p-md space-y-md" (ngSubmit)="handleChangePassword()">
-          @if (cpFeedback) {
+          @if (cpFeedback()) {
             <div class="text-body-sm font-body-sm text-center rounded-lg px-4 py-2"
-                 [class.text-green-800]="cpSuccess" [class.bg-green-100]="cpSuccess"
-                 [class.text-red-800]="!cpSuccess" [class.bg-red-100]="!cpSuccess">
-              {{ cpFeedback }}
+                 [class.text-green-800]="cpSuccess()" [class.bg-green-100]="cpSuccess()"
+                 [class.text-red-800]="!cpSuccess()" [class.bg-red-100]="!cpSuccess()">
+              {{ cpFeedback() }}
             </div>
           }
           <div class="space-y-1">
@@ -141,9 +176,34 @@ import { ToastService } from '../../shared/components/toast/toast.service';
               </button>
             </div>
           </div>
+          <!-- Requisitos -->
+          <ul class="text-body-sm font-body-sm text-on-surface-variant space-y-1">
+            <li class="flex items-center gap-1" [class.text-primary]="cpNew.length >= 8">
+              <span class="material-symbols-outlined" style="font-size:14px">{{ cpNew.length >= 8 ? 'check_circle' : 'radio_button_unchecked' }}</span>
+              Mínimo 8 caracteres
+            </li>
+            <li class="flex items-center gap-1" [class.text-primary]="hasUpperAndLower()">
+              <span class="material-symbols-outlined" style="font-size:14px">{{ hasUpperAndLower() ? 'check_circle' : 'radio_button_unchecked' }}</span>
+              Mayúscula y minúscula
+            </li>
+            <li class="flex items-center gap-1" [class.text-primary]="hasNumber()">
+              <span class="material-symbols-outlined" style="font-size:14px">{{ hasNumber() ? 'check_circle' : 'radio_button_unchecked' }}</span>
+              Al menos un número
+            </li>
+          </ul>
           <div class="flex justify-end gap-2 pt-sm border-t border-outline/10">
-            <button type="button" class="border border-outline/20 px-md py-2.5 rounded-lg font-label-md text-label-md hover:bg-surface-container transition-colors" (click)="showChangePassword = false">Cancelar</button>
-            <button type="submit" class="bg-primary text-on-primary px-md py-2.5 rounded-lg font-label-md text-label-md hover:bg-primary/90 transition-colors">Cambiar Contraseña</button>
+            <button type="button"
+                    class="border border-outline/20 px-md py-2.5 rounded-lg font-label-md text-label-md hover:bg-surface-container transition-colors"
+                    (click)="showChangePassword = false">Cancelar</button>
+            <button type="submit"
+                    class="bg-primary text-on-primary px-md py-2.5 rounded-lg font-label-md text-label-md hover:bg-primary/90 transition-colors flex items-center gap-2 disabled:opacity-60"
+                    [disabled]="cpSaving()">
+              @if (cpSaving()) {
+                <span class="material-symbols-outlined animate-spin" style="font-size:18px">progress_activity</span> Cambiando...
+              } @else {
+                Cambiar Contraseña
+              }
+            </button>
           </div>
         </form>
       </app-modal>
@@ -151,78 +211,155 @@ import { ToastService } from '../../shared/components/toast/toast.service';
   `,
 })
 export class PerfilComponent {
-  protected authService = inject(AuthService);
+  private readonly auth = inject(Auth);
+  private readonly firestore = inject(Firestore);
+  protected readonly authService = inject(AuthService);
   private readonly toast = inject(ToastService);
 
+  // Estado del usuario leído del AuthService (reactivo)
+  readonly usuario = computed(() => this.authService.getUsuario());
+
+  // Edit profile
   showEditProfile = false;
-  showChangePassword = false;
-
   epNombre = '';
-  epEmail = '';
-  epFeedback = '';
-  epSuccess = false;
+  epFeedback = signal('');
+  epSuccess = signal(false);
+  epSaving = signal(false);
 
+  // Change password
+  showChangePassword = false;
   cpCurrent = '';
   cpNew = '';
   cpConfirm = '';
-  cpFeedback = '';
-  cpSuccess = false;
+  cpFeedback = signal('');
+  cpSuccess = signal(false);
+  cpSaving = signal(false);
   showCurrent = false;
   showNew = false;
   showConfirm = false;
 
-  get displayName(): string {
-    const name = this.authService.getUsername();
-    return name ? name.charAt(0).toUpperCase() + name.slice(1) : 'Usuario';
+  hasUpperAndLower(): boolean {
+    return /[a-z]/.test(this.cpNew) && /[A-Z]/.test(this.cpNew);
   }
 
-  handleEditProfile(): void {
-    if (!this.epNombre || !this.epEmail) {
-      this.epFeedback = 'Todos los campos son obligatorios.';
-      this.epSuccess = false;
-      return;
-    }
-    if (!this.epEmail.includes('@')) {
-      this.epFeedback = 'Ingresa un correo electrónico válido.';
-      this.epSuccess = false;
-      return;
-    }
-    this.epFeedback = 'Perfil actualizado correctamente.';
-    this.epSuccess = true;
-    setTimeout(() => { this.showEditProfile = false; this.epFeedback = ''; }, 1200);
+  hasNumber(): boolean {
+    return /\d/.test(this.cpNew);
   }
 
-  handleChangePassword(): void {
-    if (!this.cpCurrent || !this.cpNew || !this.cpConfirm) {
-      this.cpFeedback = 'Todos los campos son obligatorios.';
-      this.cpSuccess = false;
-      return;
-    }
-    if (this.cpNew.length < 8) {
-      this.cpFeedback = 'La nueva contraseña debe tener al menos 8 caracteres.';
-      this.cpSuccess = false;
-      return;
-    }
-    if (!/(?=.*[a-z])(?=.*[A-Z])(?=.*\d)/.test(this.cpNew)) {
-      this.cpFeedback = 'La contraseña debe incluir mayúscula, minúscula y número.';
-      this.cpSuccess = false;
-      return;
-    }
-    if (this.cpNew !== this.cpConfirm) {
-      this.cpFeedback = 'Las contraseñas nuevas no coinciden.';
-      this.cpSuccess = false;
-      return;
-    }
-    if (this.cpCurrent === this.cpNew) {
-      this.cpFeedback = 'La nueva contraseña debe ser diferente a la actual.';
-      this.cpSuccess = false;
-      return;
-    }
-    this.cpFeedback = 'Contraseña cambiada exitosamente.';
-    this.cpSuccess = true;
+  openEditProfile(): void {
+    this.epNombre = this.usuario()?.nombre ?? '';
+    this.epFeedback.set('');
+    this.epSuccess.set(false);
+    this.showEditProfile = true;
+  }
+
+  openChangePassword(): void {
     this.cpCurrent = '';
     this.cpNew = '';
     this.cpConfirm = '';
-    setTimeout(() => { this.showChangePassword = false; this.cpFeedback = ''; }, 1200);
+    this.cpFeedback.set('');
+    this.cpSuccess.set(false);
+    this.showChangePassword = true;
+  }
+
+  async handleEditProfile(): Promise<void> {
+    if (!this.epNombre.trim()) {
+      this.epFeedback.set('El nombre no puede estar vacío.');
+      this.epSuccess.set(false);
+      return;
+    }
+
+    const currentUser: User | null = this.auth.currentUser;
+    if (!currentUser) {
+      this.epFeedback.set('Sesión expirada. Volvé a iniciar sesión.');
+      this.epSuccess.set(false);
+      return;
+    }
+
+    this.epSaving.set(true);
+    try {
+      // 1. Actualizar displayName en Firebase Auth
+      await updateProfile(currentUser, { displayName: this.epNombre.trim() });
+
+      // 2. Actualizar nombre en el documento de Firestore
+      const userDocRef = doc(this.firestore, `usuarios/${currentUser.uid}`);
+      await updateDoc(userDocRef, { nombre: this.epNombre.trim() });
+
+      this.epFeedback.set('Perfil actualizado correctamente.');
+      this.epSuccess.set(true);
+      this.toast.show('Nombre actualizado', 'success');
+      setTimeout(() => { this.showEditProfile = false; this.epFeedback.set(''); }, 1200);
+    } catch (err: any) {
+      console.error(err);
+      this.epFeedback.set('Error al actualizar el perfil. Intentá de nuevo.');
+      this.epSuccess.set(false);
+    } finally {
+      this.epSaving.set(false);
+    }
+  }
+
+  async handleChangePassword(): Promise<void> {
+    if (!this.cpCurrent || !this.cpNew || !this.cpConfirm) {
+      this.cpFeedback.set('Todos los campos son obligatorios.');
+      this.cpSuccess.set(false);
+      return;
+    }
+    if (this.cpNew.length < 8) {
+      this.cpFeedback.set('La nueva contraseña debe tener al menos 8 caracteres.');
+      this.cpSuccess.set(false);
+      return;
+    }
+    if (!this.hasUpperAndLower() || !this.hasNumber()) {
+      this.cpFeedback.set('La contraseña debe incluir mayúscula, minúscula y número.');
+      this.cpSuccess.set(false);
+      return;
+    }
+    if (this.cpNew !== this.cpConfirm) {
+      this.cpFeedback.set('Las contraseñas nuevas no coinciden.');
+      this.cpSuccess.set(false);
+      return;
+    }
+    if (this.cpCurrent === this.cpNew) {
+      this.cpFeedback.set('La nueva contraseña debe ser diferente a la actual.');
+      this.cpSuccess.set(false);
+      return;
+    }
+
+    const currentUser: User | null = this.auth.currentUser;
+    if (!currentUser || !currentUser.email) {
+      this.cpFeedback.set('Sesión expirada. Volvé a iniciar sesión.');
+      this.cpSuccess.set(false);
+      return;
+    }
+
+    this.cpSaving.set(true);
+    try {
+      // Reautenticar antes de cambiar la contraseña (requisito de Firebase)
+      const credential = EmailAuthProvider.credential(currentUser.email, this.cpCurrent);
+      await reauthenticateWithCredential(currentUser, credential);
+
+      // Cambiar contraseña
+      await updatePassword(currentUser, this.cpNew);
+
+      this.cpFeedback.set('Contraseña cambiada exitosamente.');
+      this.cpSuccess.set(true);
+      this.cpCurrent = '';
+      this.cpNew = '';
+      this.cpConfirm = '';
+      this.toast.show('Contraseña actualizada', 'success');
+      setTimeout(() => { this.showChangePassword = false; this.cpFeedback.set(''); }, 1500);
+    } catch (err: any) {
+      console.error(err);
+      if (err.code === 'auth/wrong-password' || err.code === 'auth/invalid-credential') {
+        this.cpFeedback.set('La contraseña actual es incorrecta.');
+      } else if (err.code === 'auth/too-many-requests') {
+        this.cpFeedback.set('Demasiados intentos. Esperá unos minutos.');
+      } else {
+        this.cpFeedback.set('Error al cambiar la contraseña. Intentá de nuevo.');
+      }
+      this.cpSuccess.set(false);
+    } finally {
+      this.cpSaving.set(false);
+    }
   }
 }
