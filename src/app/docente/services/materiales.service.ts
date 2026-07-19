@@ -1,5 +1,6 @@
 import { Injectable, Injector, inject, runInInjectionContext, signal } from '@angular/core';
 import { toSignal } from '@angular/core/rxjs-interop';
+import { createClient, SupabaseClient } from '@supabase/supabase-js';
 import { Material } from '../../shared/models/material.model';
 import { FirestoreCollectionService } from '../../shared/services/firestore.service';
 import {
@@ -8,16 +9,18 @@ import {
   detectarTipoArchivo,
   MATERIALES_DOCENTE_CATEGORIAS,
 } from '../../shared/services/mock-data.service';
+import { environment } from '../../../environments/environment';
 
 export type { Material as MaterialDocente };
 
-const CLOUDINARY_CLOUD = 'adtzb9q6';
-const CLOUDINARY_PRESET = 'arguedas_materiales';
-const CLOUDINARY_UPLOAD_URL = `https://api.cloudinary.com/v1_1/${CLOUDINARY_CLOUD}/auto/upload`;
+const SUPABASE_URL = environment.supabase.url;
+const SUPABASE_ANON_KEY = environment.supabase.anonKey;
+const BUCKET = 'materiales';
 
 @Injectable({ providedIn: 'root' })
 export class MaterialesDocenteService extends FirestoreCollectionService<Material> {
   private readonly injector = inject(Injector);
+  private readonly supabase: SupabaseClient = createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
 
   /** Lista reactiva en tiempo real desde Firestore */
   readonly materiales = runInInjectionContext(this.injector, () =>
@@ -34,7 +37,27 @@ export class MaterialesDocenteService extends FirestoreCollectionService<Materia
     const nombre = file.name;
     const tipo = detectarTipoArchivo(nombre);
 
-    const { url, publicId } = await this.uploadToCloudinary(file, onProgress);
+    // ─── Subida a Supabase Storage ────────────────────────────────────────────
+    const ext = nombre.split('.').pop() ?? '';
+    const uniqueName = `${Date.now()}_${Math.random().toString(36).slice(2)}.${ext}`;
+
+    onProgress?.(10);
+
+    const { data, error } = await this.supabase.storage
+      .from(BUCKET)
+      .upload(uniqueName, file, { cacheControl: '3600', upsert: false });
+
+    if (error) throw new Error(error.message);
+
+    onProgress?.(90);
+
+    // ─── URL pública (bucket debe ser público) ────────────────────────────────
+    const { data: publicUrlData } = this.supabase.storage
+      .from(BUCKET)
+      .getPublicUrl(data.path);
+
+    const url = publicUrlData.publicUrl;
+    onProgress?.(100);
 
     const sizeInMb = file.size / (1024 * 1024);
     const tamano =
@@ -52,50 +75,16 @@ export class MaterialesDocenteService extends FirestoreCollectionService<Materia
       fecha: new Date().toISOString().split('T')[0],
       createdAt: new Date().toISOString(),
       url,
-      storagePath: publicId,
+      storagePath: data.path,
     };
 
     await this.create(material as any);
   }
 
-  async eliminar(id: string): Promise<void> {
+  async eliminar(id: string, storagePath?: string): Promise<void> {
+    if (storagePath) {
+      await this.supabase.storage.from(BUCKET).remove([storagePath]);
+    }
     await this.delete(id);
-  }
-
-  private uploadToCloudinary(
-    file: File,
-    onProgress?: (pct: number) => void
-  ): Promise<{ url: string; publicId: string }> {
-    return new Promise((resolve, reject) => {
-      const formData = new FormData();
-      formData.append('file', file);
-      formData.append('upload_preset', CLOUDINARY_PRESET);
-
-      const xhr = new XMLHttpRequest();
-      xhr.open('POST', CLOUDINARY_UPLOAD_URL, true);
-
-      if (onProgress) {
-        xhr.upload.addEventListener('progress', (e) => {
-          if (e.lengthComputable) {
-            onProgress(Math.round((e.loaded / e.total) * 100));
-          }
-        });
-      }
-
-      xhr.addEventListener('load', () => {
-        if (xhr.status >= 200 && xhr.status < 300) {
-          const res = JSON.parse(xhr.responseText);
-          resolve({ url: res.secure_url, publicId: res.public_id });
-        } else {
-          const err = JSON.parse(xhr.responseText);
-          reject(new Error(err.error?.message ?? 'Error en Cloudinary'));
-        }
-      });
-
-      xhr.addEventListener('error', () =>
-        reject(new Error('Error de red al subir a Cloudinary'))
-      );
-      xhr.send(formData);
-    });
   }
 }

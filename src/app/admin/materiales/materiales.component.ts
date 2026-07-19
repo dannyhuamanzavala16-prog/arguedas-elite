@@ -1,6 +1,7 @@
 import { Component, computed, inject, signal } from '@angular/core';
 import { FormsModule } from '@angular/forms';
 import { MaterialesService } from '../services/materiales.service';
+import { Material } from '../../shared/models/material.model';
 import { ModalComponent } from '../../shared/components/modal/modal.component';
 import { PaginationComponent } from '../../shared/components/pagination/pagination.component';
 import { ConfirmService } from '../../shared/components/confirm/confirm.service';
@@ -75,12 +76,15 @@ const MAX_SIZE_MB = 50;
           <div class="group bg-surface-container-lowest rounded-xl p-md border border-outline/10 shadow-sm hover:shadow-md transition-all relative overflow-hidden">
             <div class="absolute top-0 right-0 p-2 opacity-0 group-hover:opacity-100 transition-opacity flex gap-1">
               @if (mat.url) {
-                <a [href]="mat.url" target="_blank" rel="noopener"
+                <button type="button"
                    class="w-9 h-9 flex items-center justify-center rounded-lg text-on-surface-variant hover:bg-primary/10 hover:text-primary transition-colors material-symbols-outlined"
-                   title="Descargar">download</a>
+                   [class.animate-spin]="downloadingId() === mat.id"
+                   [disabled]="downloadingId() === mat.id"
+                   title="Descargar"
+                   (click)="downloadFile(mat)">{{ downloadingId() === mat.id ? 'progress_activity' : 'download' }}</button>
               }
               <button class="w-9 h-9 flex items-center justify-center rounded-lg text-on-surface-variant hover:bg-error/10 hover:text-error transition-colors material-symbols-outlined"
-                      (click)="confirmDelete(mat.id)" title="Eliminar">delete</button>
+                      (click)="confirmDelete(mat.id, mat.storagePath)" title="Eliminar">delete</button>
             </div>
             <div class="w-12 h-12 rounded-lg {{ mat.colorClase }} flex items-center justify-center mb-md">
               <span class="material-symbols-outlined" style="font-variation-settings: 'FILL' 1;">{{ mat.icono }}</span>
@@ -214,11 +218,13 @@ export class MaterialesComponent {
   formCurso = '';
   showModal = false;
 
+
   // File state
   selectedFile = signal<File | null>(null);
   fileError = signal('');
   uploading = signal(false);
   uploadPercent = signal(0);
+  downloadingId = signal<string | null>(null);
 
   currentPage = signal(1);
   readonly cursos = computed(() => this.service.getCursos());
@@ -329,7 +335,31 @@ export class MaterialesComponent {
     }
   }
 
-  confirmDelete(id?: string): void {
+  async downloadFile(mat: Material): Promise<void> {
+    if (!mat.url || !mat.id) return;
+    this.downloadingId.set(mat.id);
+    try {
+      // Fetch directo sobre la URL pública (sin transformaciones que requieran autorización)
+      const res = await fetch(mat.url);
+      if (!res.ok) throw new Error(`HTTP ${res.status}`);
+      const blob = await res.blob();
+      const objectUrl = URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = objectUrl;
+      a.download = mat.nombre;
+      document.body.appendChild(a);
+      a.click();
+      document.body.removeChild(a);
+      URL.revokeObjectURL(objectUrl);
+    } catch {
+      // Fallback: abrir en nueva pestaña si fetch falla por CORS u otro error
+      window.open(mat.url, '_blank', 'noopener');
+    } finally {
+      this.downloadingId.set(null);
+    }
+  }
+
+  confirmDelete(id?: string, storagePath?: string): void {
     if (!id) return;
     this.confirm.confirm({
       title: 'Eliminar archivo',
@@ -339,7 +369,7 @@ export class MaterialesComponent {
     }).subscribe(async (ok) => {
       if (!ok) return;
       try {
-        await this.service.eliminar(id);
+        await this.service.eliminar(id, storagePath);
         this.toast.show('Archivo eliminado correctamente', 'success');
       } catch (err) {
         console.error('Error al eliminar material:', err);

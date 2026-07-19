@@ -80,9 +80,12 @@ const MAX_SIZE_MB = 50;
             <!-- Actions overlay -->
             <div class="absolute top-2 right-2 flex gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
               @if (mat.url) {
-                <a [href]="mat.url" target="_blank" rel="noopener"
+                <button type="button"
                    class="w-8 h-8 flex items-center justify-center rounded-lg text-on-surface-variant hover:bg-primary/10 hover:text-primary transition-colors material-symbols-outlined text-[18px]"
-                   title="Descargar">download</a>
+                   [class.animate-spin]="downloadingId() === mat.id"
+                   [disabled]="downloadingId() === mat.id"
+                   title="Descargar"
+                   (click)="downloadFile(mat)">{{ downloadingId() === mat.id ? 'progress_activity' : 'download' }}</button>
               }
               <button class="w-8 h-8 flex items-center justify-center rounded-lg text-on-surface-variant hover:bg-error/10 hover:text-error transition-colors material-symbols-outlined text-[18px]"
                       (click)="confirmDelete(mat)" title="Eliminar">delete</button>
@@ -220,6 +223,7 @@ export class MaterialesComponent {
   fileError = signal('');
   uploading = signal(false);
   uploadPercent = signal(0);
+  downloadingId = signal<string | null>(null);
 
   readonly filteredMateriales = computed(() => {
     let list = this.service.materiales();
@@ -308,10 +312,32 @@ export class MaterialesComponent {
       this.toast.show(`"${file.name}" subido correctamente`, 'success');
     } catch (err) {
       console.error('Error al subir material:', err);
-      this.toast.show('Error al subir el archivo. Revisá el preset de Cloudinary.', 'error');
+      this.toast.show('Error al subir el archivo. Intentá de nuevo.', 'error');
     } finally {
       this.uploading.set(false);
       this.uploadPercent.set(0);
+    }
+  }
+
+  async downloadFile(mat: Material): Promise<void> {
+    if (!mat.url || !mat.id) return;
+    this.downloadingId.set(mat.id);
+    try {
+      const res = await fetch(mat.url);
+      if (!res.ok) throw new Error(`HTTP ${res.status}`);
+      const blob = await res.blob();
+      const objectUrl = URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = objectUrl;
+      a.download = mat.nombre;
+      document.body.appendChild(a);
+      a.click();
+      document.body.removeChild(a);
+      URL.revokeObjectURL(objectUrl);
+    } catch {
+      window.open(mat.url, '_blank', 'noopener');
+    } finally {
+      this.downloadingId.set(null);
     }
   }
 
@@ -325,7 +351,7 @@ export class MaterialesComponent {
     }).subscribe(async (ok) => {
       if (!ok) return;
       try {
-        await this.service.eliminar(mat.id!);
+        await this.service.eliminar(mat.id!, mat.storagePath);
         this.toast.show('Archivo eliminado correctamente', 'success');
       } catch (err) {
         console.error('Error al eliminar:', err);
