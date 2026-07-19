@@ -41,6 +41,14 @@ export class AuthService {
   private _ignoringNextNull = false;
   private _ignoreNullTimer?: ReturnType<typeof setTimeout>;
 
+  private readonly _isLoaded = signal(false);
+  readonly isLoaded = this._isLoaded.asReadonly();
+
+  private resolveInit!: (value: boolean) => void;
+  readonly isInitialized = new Promise<boolean>((resolve) => {
+    this.resolveInit = resolve;
+  });
+
   constructor() {
     // Escucha cambios en el estado de autenticación de Firebase
     onAuthStateChanged(this.auth, (user) => {
@@ -54,11 +62,18 @@ export class AuthService {
         }
         this.userSub?.unsubscribe();
         this._currentUid = user.uid;
-        this.userSub = this.loadUserData(user).subscribe();
+        this.userSub = this.loadUserData(user).subscribe({
+          error: (err) => {
+            this._isLoaded.set(true);
+            this.resolveInit(true);
+          }
+        });
       } else {
         this.userSub?.unsubscribe();
         this._currentUid = null;
         this.state.set({ user: null, usuario: null, role: null });
+        this._isLoaded.set(true);
+        this.resolveInit(true);
       }
     });
   }
@@ -101,7 +116,11 @@ export class AuthService {
     const userDoc = doc(this.firestore, `usuarios/${user.uid}`);
     return docData(userDoc).pipe(
       map((data: any) => {
-        if (!data) return null;
+        if (!data) {
+          this._isLoaded.set(true);
+          this.resolveInit(true);
+          return null;
+        }
         const usuario: Usuario = {
           username: data.username ?? user.email ?? '',
           role: data.role,
@@ -109,6 +128,8 @@ export class AuthService {
           email: data.email ?? user.email ?? '',
         };
         this.state.set({ user, usuario, role: usuario.role });
+        this._isLoaded.set(true);
+        this.resolveInit(true);
         return usuario;
       }),
     );
