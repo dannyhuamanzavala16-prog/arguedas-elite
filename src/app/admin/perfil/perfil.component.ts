@@ -7,6 +7,7 @@ import {
   reauthenticateWithCredential,
   EmailAuthProvider,
   User,
+  updateEmail,
 } from '@angular/fire/auth';
 import { Firestore, doc, updateDoc } from '@angular/fire/firestore';
 import { Router } from '@angular/router';
@@ -73,7 +74,7 @@ import { ToastService } from '../../shared/components/toast/toast.service';
               <span class="material-symbols-outlined text-primary">edit</span>
               <div>
                 <p class="font-label-md text-label-md text-on-surface">Editar Perfil</p>
-                <p class="font-body-sm text-body-sm text-on-surface-variant">Actualiza tu nombre</p>
+                <p class="font-body-sm text-body-sm text-on-surface-variant">Actualiza tu nombre y correo</p>
               </div>
             </button>
             <button class="w-full flex items-center gap-3 p-sm border border-outline/20 rounded-lg hover:bg-surface-container-low transition-colors text-left"
@@ -108,6 +109,11 @@ import { ToastService } from '../../shared/components/toast/toast.service';
           <div class="space-y-1">
             <label class="font-label-sm text-label-sm text-on-surface-variant block">Nombre completo</label>
             <input type="text" [(ngModel)]="epNombre" name="epNombre" required
+                   class="w-full bg-surface-container-low border border-outline-variant rounded-lg py-2.5 px-3 font-body-md text-body-md focus:border-primary focus:bg-white transition-all" />
+          </div>
+          <div class="space-y-1">
+            <label class="font-label-sm text-label-sm text-on-surface-variant block">Correo electrónico</label>
+            <input type="email" [(ngModel)]="epEmail" name="epEmail" required
                    class="w-full bg-surface-container-low border border-outline-variant rounded-lg py-2.5 px-3 font-body-md text-body-md focus:border-primary focus:bg-white transition-all" />
           </div>
           <div class="flex justify-end gap-2 pt-sm border-t border-outline/10">
@@ -183,14 +189,6 @@ import { ToastService } from '../../shared/components/toast/toast.service';
               <span class="material-symbols-outlined" style="font-size:14px">{{ cpNew.length >= 8 ? 'check_circle' : 'radio_button_unchecked' }}</span>
               Mínimo 8 caracteres
             </li>
-            <li class="flex items-center gap-1" [class.text-primary]="hasUpperAndLower()">
-              <span class="material-symbols-outlined" style="font-size:14px">{{ hasUpperAndLower() ? 'check_circle' : 'radio_button_unchecked' }}</span>
-              Mayúscula y minúscula
-            </li>
-            <li class="flex items-center gap-1" [class.text-primary]="hasNumber()">
-              <span class="material-symbols-outlined" style="font-size:14px">{{ hasNumber() ? 'check_circle' : 'radio_button_unchecked' }}</span>
-              Al menos un número
-            </li>
           </ul>
           <div class="flex justify-end gap-2 pt-sm border-t border-outline/10">
             <button type="button"
@@ -224,6 +222,7 @@ export class PerfilComponent {
   // Edit profile
   showEditProfile = false;
   epNombre = '';
+  epEmail = '';
   epFeedback = signal('');
   epSuccess = signal(false);
   epSaving = signal(false);
@@ -240,16 +239,9 @@ export class PerfilComponent {
   showNew = false;
   showConfirm = false;
 
-  hasUpperAndLower(): boolean {
-    return /[a-z]/.test(this.cpNew) && /[A-Z]/.test(this.cpNew);
-  }
-
-  hasNumber(): boolean {
-    return /\d/.test(this.cpNew);
-  }
-
   openEditProfile(): void {
     this.epNombre = this.usuario()?.nombre ?? '';
+    this.epEmail = this.usuario()?.email ?? '';
     this.epFeedback.set('');
     this.epSuccess.set(false);
     this.showEditProfile = true;
@@ -265,13 +257,17 @@ export class PerfilComponent {
   }
 
   async handleEditProfile(event?: Event): Promise<void> {
-    console.log('[PerfilAdmin] handleEditProfile: INICIO, ruta actual:', window.location.pathname);
     if (event) {
       event.preventDefault();
       event.stopPropagation();
     }
     if (!this.epNombre.trim()) {
       this.epFeedback.set('El nombre no puede estar vacío.');
+      this.epSuccess.set(false);
+      return;
+    }
+    if (!this.epEmail.trim()) {
+      this.epFeedback.set('El correo no puede estar vacío.');
       this.epSuccess.set(false);
       return;
     }
@@ -286,25 +282,39 @@ export class PerfilComponent {
     this.epSaving.set(true);
     this.authService.markProfileUpdate();
     try {
-      // 1. Actualizar displayName en Firebase Auth
+      let emailChanged = false;
+      const newEmail = this.epEmail.trim();
+      if (newEmail !== currentUser.email) {
+        emailChanged = true;
+        // 1. Actualizar correo en Firebase Auth
+        await updateEmail(currentUser, newEmail);
+      }
+
+      // 2. Actualizar displayName en Firebase Auth
       await updateProfile(currentUser, { displayName: this.epNombre.trim() });
 
-      // 2. Actualizar nombre en el documento de Firestore
+      // 3. Actualizar nombre y correo en el documento de Firestore
       const userDocRef = doc(this.firestore, `usuarios/${currentUser.uid}`);
-      await updateDoc(userDocRef, { nombre: this.epNombre.trim() });
+      const updateData: any = { nombre: this.epNombre.trim() };
+      if (emailChanged) {
+        updateData.email = newEmail;
+        updateData.username = newEmail;
+      }
+      await updateDoc(userDocRef, updateData);
 
       this.epFeedback.set('Perfil actualizado correctamente.');
       this.epSuccess.set(true);
-      this.toast.show('Nombre actualizado', 'success');
-      console.log('[PerfilAdmin] handleEditProfile: éxito, cerrando modal, ruta actual:', window.location.pathname);
+      this.toast.show('Perfil actualizado', 'success');
       setTimeout(() => {
         this.showEditProfile = false;
         this.epFeedback.set('');
-        console.log('[PerfilAdmin] handleEditProfile: modal cerrado, ruta:', window.location.pathname);
       }, 1200);
     } catch (err: any) {
-      console.error(err);
-      this.epFeedback.set('Error al actualizar el perfil. Intentá de nuevo.');
+      if (err.code === 'auth/requires-recent-login') {
+        this.epFeedback.set('Por seguridad, reautenticate (cambiá tu contraseña o iniciá sesión de nuevo) antes de cambiar el correo.');
+      } else {
+        this.epFeedback.set('Error al actualizar el perfil. Intentá de nuevo.');
+      }
       this.epSuccess.set(false);
     } finally {
       this.epSaving.set(false);
@@ -313,7 +323,6 @@ export class PerfilComponent {
   }
 
   async handleChangePassword(event?: Event): Promise<void> {
-    console.log('[PerfilAdmin] handleChangePassword: INICIO, ruta actual:', window.location.pathname);
     if (event) {
       event.preventDefault();
       event.stopPropagation();
@@ -325,11 +334,6 @@ export class PerfilComponent {
     }
     if (this.cpNew.length < 8) {
       this.cpFeedback.set('La nueva contraseña debe tener al menos 8 caracteres.');
-      this.cpSuccess.set(false);
-      return;
-    }
-    if (!this.hasUpperAndLower() || !this.hasNumber()) {
-      this.cpFeedback.set('La contraseña debe incluir mayúscula, minúscula y número.');
       this.cpSuccess.set(false);
       return;
     }
@@ -367,14 +371,11 @@ export class PerfilComponent {
       this.cpNew = '';
       this.cpConfirm = '';
       this.toast.show('Contraseña actualizada', 'success');
-      console.log('[PerfilAdmin] handleChangePassword: éxito, cerrando modal, ruta actual:', window.location.pathname);
       setTimeout(() => {
         this.showChangePassword = false;
         this.cpFeedback.set('');
-        console.log('[PerfilAdmin] handleChangePassword: modal cerrado, ruta:', window.location.pathname);
       }, 1500);
     } catch (err: any) {
-      console.error(err);
       if (err.code === 'auth/wrong-password' || err.code === 'auth/invalid-credential') {
         this.cpFeedback.set('La contraseña actual es incorrecta.');
       } else if (err.code === 'auth/too-many-requests') {

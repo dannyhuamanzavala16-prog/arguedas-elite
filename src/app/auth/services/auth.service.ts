@@ -1,7 +1,8 @@
 import { Injectable, inject, signal } from '@angular/core';
 import { Auth, signInWithEmailAndPassword, signOut, onAuthStateChanged, User } from '@angular/fire/auth';
 import { Firestore, doc, docData } from '@angular/fire/firestore';
-import { Observable, from, map, of, switchMap, Subscription } from 'rxjs';
+import { Router, NavigationStart } from '@angular/router';
+import { Observable, from, map, of, switchMap, Subscription, take } from 'rxjs';
 export type { UserRole } from '../../shared/models/usuario.model';
 import { UserRole, Usuario } from '../../shared/models/usuario.model';
 
@@ -15,6 +16,7 @@ export interface AuthState {
 export class AuthService {
   private readonly auth = inject(Auth);
   private readonly firestore = inject(Firestore);
+  private readonly router = inject(Router);
 
   private readonly state = signal<AuthState>({
     user: null,
@@ -30,6 +32,9 @@ export class AuthService {
   };
 
   private userSub?: Subscription;
+  /** UID del usuario actualmente suscrito — evita re-suscripción innecesaria
+   *  cuando Firebase refresca el token (updateProfile/updatePassword). */
+  private _currentUid: string | null = null;
   /** Evita que el null transitorio de onAuthStateChanged (causado por
    *  updateProfile al refrescar el token) borre el estado mientras el
    *  usuario sigue logueado. Se activa antes de cada updateProfile. */
@@ -40,13 +45,19 @@ export class AuthService {
     // Escucha cambios en el estado de autenticación de Firebase
     onAuthStateChanged(this.auth, (user) => {
       if (!user && this._ignoringNextNull) {
-        // null transitorio por refresh de token — lo ignoramos
         return;
       }
-      this.userSub?.unsubscribe();
+
       if (user) {
+        if (user.uid === this._currentUid) {
+          return;
+        }
+        this.userSub?.unsubscribe();
+        this._currentUid = user.uid;
         this.userSub = this.loadUserData(user).subscribe();
       } else {
+        this.userSub?.unsubscribe();
+        this._currentUid = null;
         this.state.set({ user: null, usuario: null, role: null });
       }
     });
@@ -73,12 +84,14 @@ export class AuthService {
     return from(signInWithEmailAndPassword(this.auth, email, password)).pipe(
       switchMap((cred) => this.loadUserData(cred.user)),
       map(() => true),
+      take(1),
     );
   }
 
   /** Cierra sesión */
   async logout(): Promise<void> {
     this.userSub?.unsubscribe();
+    this._currentUid = null;
     await signOut(this.auth);
     this.state.set({ user: null, usuario: null, role: null });
   }
