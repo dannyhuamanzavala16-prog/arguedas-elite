@@ -1,6 +1,7 @@
-import { Component, computed, inject } from '@angular/core';
+import { Component, computed, inject, signal } from '@angular/core';
 import { FormsModule } from '@angular/forms';
 import { AsistenciaService } from '../services/asistencia.service';
+import { ToastService } from '../../shared/components/toast/toast.service';
 
 @Component({
   selector: 'app-asistencia',
@@ -14,7 +15,7 @@ import { AsistenciaService } from '../services/asistencia.service';
           <h1 class="font-headline-lg text-headline-lg text-primary tracking-tight">Registro de Asistencia</h1>
         </div>
         <div class="flex gap-sm">
-          <button class="px-md py-sm bg-primary text-on-primary font-label-md text-label-md rounded-lg hover:bg-primary/90 transition-all shadow-md flex items-center gap-xs"
+          <button class="px-md py-sm bg-primary text-on-primary font-label-md text-label-md rounded-lg hover:bg-primary/90 transition-all shadow-md flex items-center gap-xs disabled:opacity-60 disabled:cursor-not-allowed"
                   (click)="guardar()" [disabled]="isSaving" id="saveBtn">
             @if (!isSaving) {
               <span class="material-symbols-outlined text-[18px]" data-icon="save">save</span>
@@ -28,8 +29,17 @@ import { AsistenciaService } from '../services/asistencia.service';
 
       <!-- Configuration -->
       <div class="bg-surface-container-lowest rounded-xl shadow-md border border-outline-variant/10 p-md mb-md flex flex-col md:flex-row gap-md flex-wrap" id="selection-area">
-        <div class="w-full mb-xs">
+        <div class="w-full mb-xs flex justify-between items-center">
           <h2 class="font-label-md text-label-md text-primary uppercase tracking-wider">Configuración de Clase</h2>
+          <div class="flex gap-2">
+            <button class="text-body-sm font-label-sm text-primary hover:bg-primary/5 px-2 py-1 rounded" (click)="service.marcarTodos(true)">
+              Marcar todos presente
+            </button>
+            <span class="text-outline">|</span>
+            <button class="text-body-sm font-label-sm text-error hover:bg-error/5 px-2 py-1 rounded" (click)="service.marcarTodos(false)">
+              Marcar todos ausente
+            </button>
+          </div>
         </div>
         <div class="flex-1">
           <label class="block font-label-sm text-label-sm text-on-surface-variant uppercase tracking-wider mb-xs">Seleccionar Curso</label>
@@ -82,7 +92,9 @@ import { AsistenciaService } from '../services/asistencia.service';
                 <tr class="border-b border-outline-variant/10 hover:bg-surface-container-low transition-colors group">
                   <td class="px-md py-sm">
                     <div class="flex items-center gap-md">
-                      <img src="placeholder" class="w-12 h-12 rounded-full object-cover shadow-sm">
+                      <div class="w-10 h-10 rounded-full bg-primary/10 text-primary flex items-center justify-center font-label-md text-label-md select-none font-bold">
+                        {{ getInitials(est.nombre) }}
+                      </div>
                       <span class="font-label-md text-label-md text-on-surface group-hover:text-primary transition-colors">{{ est.nombre }}</span>
                     </div>
                   </td>
@@ -91,7 +103,7 @@ import { AsistenciaService } from '../services/asistencia.service';
                   </td>
                   <td class="px-md py-sm text-center">
                     <label class="inline-flex items-center cursor-pointer">
-                      <input type="radio" [name]="'attendance-' + $index" value="present"
+                      <input type="radio" [name]="'attendance-' + est.id" value="present"
                              [checked]="est.presente"
                              (change)="service.marcarEstudiante(est.id, true)"
                              class="attendance-radio w-5 h-5 text-tertiary focus:ring-tertiary border-outline" />
@@ -99,7 +111,7 @@ import { AsistenciaService } from '../services/asistencia.service';
                   </td>
                   <td class="px-md py-sm text-center">
                     <label class="inline-flex items-center cursor-pointer">
-                      <input type="radio" [name]="'attendance-' + $index" value="absent"
+                      <input type="radio" [name]="'attendance-' + est.id" value="absent"
                              [checked]="!est.presente"
                              (change)="service.marcarEstudiante(est.id, false)"
                              class="attendance-radio w-5 h-5 text-error focus:ring-error border-outline" />
@@ -133,7 +145,8 @@ import { AsistenciaService } from '../services/asistencia.service';
   `],
 })
 export class AsistenciaComponent {
-  protected service = inject(AsistenciaService);
+  protected readonly service = inject(AsistenciaService);
+  private readonly toast = inject(ToastService);
 
   searchQuery = '';
   isSaving = false;
@@ -149,12 +162,24 @@ export class AsistenciaComponent {
 
   readonly paginated = computed(() => this.filtered());
 
+  getInitials(name: string): string {
+    if (!name) return '';
+    return name
+      .split(' ')
+      .map((n) => n[0])
+      .slice(0, 2)
+      .join('')
+      .toUpperCase();
+  }
+
   async guardar(): Promise<void> {
     this.isSaving = true;
     try {
       await this.service.guardar();
-    } catch {
-      console.error('Error al guardar la asistencia');
+      this.toast.show('Asistencia guardada correctamente en la base de datos.', 'success');
+    } catch (err) {
+      console.error('Error al guardar la asistencia:', err);
+      this.toast.show('Error al guardar la asistencia. Intente de nuevo.', 'error');
     } finally {
       this.isSaving = false;
     }

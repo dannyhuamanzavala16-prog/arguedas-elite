@@ -1,4 +1,7 @@
-import { Component } from '@angular/core';
+import { Component, computed, inject } from '@angular/core';
+import { EstudiantesService } from '../../admin/services/estudiantes.service';
+import { MaterialesDocenteService } from '../services/materiales.service';
+import { AsistenciaService } from '../services/asistencia.service';
 
 @Component({
   selector: 'app-docente-dashboard',
@@ -15,7 +18,7 @@ import { Component } from '@angular/core';
             </div>
           </div>
           <div class="flex items-baseline gap-xs">
-            <span class="font-headline-lg text-headline-lg text-primary">32</span>
+            <span class="font-headline-lg text-headline-lg text-primary">{{ totalAlumnos() }}</span>
           </div>
         </div>
 
@@ -27,7 +30,7 @@ import { Component } from '@angular/core';
             </div>
           </div>
           <div class="flex items-baseline gap-xs">
-            <span class="font-headline-lg text-headline-lg text-primary">94%</span>
+            <span class="font-headline-lg text-headline-lg text-primary">{{ promedioAsistencia() }}%</span>
           </div>
         </div>
 
@@ -39,11 +42,20 @@ import { Component } from '@angular/core';
             </div>
           </div>
           <div class="flex items-baseline gap-xs">
-            <span class="font-headline-lg text-headline-lg text-primary">12</span>
+            <span class="font-headline-lg text-headline-lg text-primary">{{ materialesSubidos() }}</span>
           </div>
         </div>
       </section>
     </div>
   `,
 })
-export class DocenteDashboardComponent {}
+export class DocenteDashboardComponent {
+  private readonly estudiantesService = inject(EstudiantesService);
+  private readonly materialesService = inject(MaterialesDocenteService);
+  private readonly asistenciaService = inject(AsistenciaService);
+
+  readonly totalAlumnos = computed(() => this.estudiantesService.estudiantes().length);
+  readonly promedioAsistencia = computed(() => this.asistenciaService.getStats().porcentaje);
+  readonly materialesSubidos = computed(() => this.materialesService.materiales().length);
+}
+

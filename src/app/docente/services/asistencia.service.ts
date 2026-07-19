@@ -1,5 +1,10 @@
 import { Injectable, inject, signal } from '@angular/core';
-import { MockDataService, ASISTENCIA_CURSOS, ASISTENCIA_GRUPOS } from '../../shared/services/mock-data.service';
+import { Firestore, doc, setDoc, docData } from '@angular/fire/firestore';
+import { toObservable } from '@angular/core/rxjs-interop';
+import { combineLatest } from 'rxjs';
+import { switchMap, map } from 'rxjs/operators';
+import { EstudiantesService } from '../../admin/services/estudiantes.service';
+import { ASISTENCIA_CURSOS, ASISTENCIA_GRUPOS } from '../../shared/services/mock-data.service';
 
 export interface EstudianteAsistencia {
   id: string;
@@ -8,13 +13,25 @@ export interface EstudianteAsistencia {
   nota: string;
 }
 
+function getTodayString(): string {
+  const d = new Date();
+  const year = d.getFullYear();
+  const month = String(d.getMonth() + 1).padStart(2, '0');
+  const day = String(d.getDate()).padStart(2, '0');
+  return `${year}-${month}-${day}`;
+}
+
+function getDocId(fecha: string, curso: string, grupo: string): string {
+  const clean = (str: string) => str.toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g, '').replace(/[^a-z0-9]+/g, '-');
+  return `${fecha}_${clean(curso)}_${clean(grupo)}`;
+}
+
 @Injectable({ providedIn: 'root' })
 export class AsistenciaService {
-  private readonly mockData = inject(MockDataService);
+  private readonly firestore = inject(Firestore);
+  private readonly estudiantesService = inject(EstudiantesService);
 
-  private readonly _estudiantes = signal<EstudianteAsistencia[]>(
-    this.mockData.asistenciaEstudiantes
-  );
+  private readonly _estudiantes = signal<EstudianteAsistencia[]>([]);
   readonly estudiantes = this._estudiantes.asReadonly();
 
   private readonly _curso = signal(ASISTENCIA_CURSOS[0]);
@@ -22,6 +39,45 @@ export class AsistenciaService {
   readonly curso = this._curso.asReadonly();
   readonly grupo = this._grupo.asReadonly();
 
+  // Estado de sincronización en tiempo real
+  private readonly _syncStatus = signal<'sincronizando' | 'guardado' | 'error'>('guardado');
+  readonly syncStatus = this._syncStatus.asReadonly();
+
+  constructor() {
+    // Escuchar de forma reactiva los cambios de curso, grupo y de la lista global de estudiantes
+    combineLatest([
+      toObservable(this._curso),
+      toObservable(this._grupo),
+      toObservable(this.estudiantesService.estudiantes)
+    ]).pipe(
+      switchMap(([curso, grupo, allEsts]) => {
+        const today = getTodayString();
+        const docId = getDocId(today, curso, grupo);
+        const docRef = doc(this.firestore, 'asistencias', docId);
+        
+        return docData(docRef).pipe(
+          map((data: any) => {
+            if (data && data.estudiantes) {
+              return data.estudiantes as EstudianteAsistencia[];
+            }
+            // Si no existe un registro guardado para hoy, cargamos los estudiantes activos de la BD
+            return allEsts.map((e) => ({
+              id: e.codigo,
+              nombre: e.nombre,
+              presente: true, // Default a presente para facilitar el marcado
+              nota: '',
+            }));
+          })
+        );
+      })
+    ).subscribe((ests) => {
+      this._estudiantes.set(ests);
+    });
+  }
+
+  get Cursos(): string[] {
+    return [...ASISTENCIA_CURSOS];
+  }
   get cursos(): string[] {
     return [...ASISTENCIA_CURSOS];
   }
@@ -37,22 +93,19 @@ export class AsistenciaService {
     this._grupo.set(grupo);
   }
 
-  marcarTodos(presente: boolean): void {
-    this._estudiantes.update((list) =>
-      list.map((e) => ({ ...e, presente }))
-    );
+  async marcarTodos(presente: boolean): Promise<void> {
+    const list = this._estudiantes().map((e) => ({ ...e, presente }));
+    await this.guardarLista(list);
   }
 
-  marcarEstudiante(id: string, presente: boolean): void {
-    this._estudiantes.update((list) =>
-      list.map((e) => (e.id === id ? { ...e, presente } : e))
-    );
+  async marcarEstudiante(id: string, presente: boolean): Promise<void> {
+    const list = this._estudiantes().map((e) => (e.id === id ? { ...e, presente } : e));
+    await this.guardarLista(list);
   }
 
-  actualizarNota(id: string, nota: string): void {
-    this._estudiantes.update((list) =>
-      list.map((e) => (e.id === id ? { ...e, nota } : e))
-    );
+  async actualizarNota(id: string, nota: string): Promise<void> {
+    const list = this._estudiantes().map((e) => (e.id === id ? { ...e, nota } : e));
+    await this.guardarLista(list);
   }
 
   getStats(): { presentes: number; ausentes: number; porcentaje: number; total: number } {
@@ -64,11 +117,31 @@ export class AsistenciaService {
     return { presentes, ausentes, porcentaje, total };
   }
 
-  guardar(): Promise<void> {
-    return new Promise((resolve) => {
-      setTimeout(() => {
-        resolve();
-      }, 1200);
-    });
+  async guardar(): Promise<void> {
+    await this.guardarLista(this._estudiantes());
+  }
+
+  private async guardarLista(list: EstudianteAsistencia[]): Promise<void> {
+    this._syncStatus.set('sincronizando');
+    try {
+      const today = getTodayString();
+      const curso = this._curso();
+      const grupo = this._grupo();
+      const docId = getDocId(today, curso, grupo);
+      const docRef = doc(this.firestore, 'asistencias', docId);
+
+      await setDoc(docRef, {
+        fecha: today,
+        curso,
+        grupo,
+        estudiantes: list,
+        updatedAt: new Date().toISOString(),
+      });
+      this._syncStatus.set('guardado');
+    } catch (e) {
+      console.error('Error auto-guardando asistencia:', e);
+      this._syncStatus.set('error');
+      throw e;
+    }
   }
 }

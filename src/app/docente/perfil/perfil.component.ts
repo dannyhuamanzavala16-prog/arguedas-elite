@@ -1,8 +1,23 @@
-import { Component, inject } from '@angular/core';
+import { Component, computed, effect, inject, signal } from '@angular/core';
 import { FormsModule } from '@angular/forms';
+import {
+  Auth,
+  updatePassword,
+  updateProfile,
+  reauthenticateWithCredential,
+  EmailAuthProvider,
+  User,
+} from '@angular/fire/auth';
+import { Firestore, doc, updateDoc, docData } from '@angular/fire/firestore';
 import { AuthService } from '../../auth/services/auth.service';
 import { ModalComponent } from '../../shared/components/modal/modal.component';
 import { ToastService } from '../../shared/components/toast/toast.service';
+
+interface PerfilExtendido {
+  telefono?: string;
+  especializacion?: string;
+  fechaNacimiento?: string;
+}
 
 @Component({
   selector: 'app-perfil-docente',
@@ -13,12 +28,16 @@ import { ToastService } from '../../shared/components/toast/toast.service';
       <!-- Profile Identity Card -->
       <div class="bg-surface-container-lowest rounded-xl shadow-sm border border-outline-variant/10 overflow-hidden">
         <div class="bg-primary h-24"></div>
-        <div class="px-md pb-md -mt-12">
-          <div class="w-24 h-24 rounded-full bg-primary-container flex items-center justify-center text-on-primary-container border-4 border-surface-container-lowest shadow-lg mx-auto">
-            <span class="material-symbols-outlined" style="font-size: 48px;">person</span>
+        <div class="px-md pb-md -mt-12 flex flex-col items-center">
+          <div class="w-24 h-24 rounded-full bg-primary-container flex items-center justify-center text-on-primary-container border-4 border-surface-container-lowest shadow-lg">
+            <span class="font-headline-lg text-headline-lg font-bold select-none">{{ initiales() }}</span>
           </div>
-          <h2 class="font-headline-lg text-headline-lg text-center text-on-surface mt-sm">{{ displayName }}</h2>
-          <p class="font-body-md text-body-md text-center text-on-surface-variant">{{ email }}</p>
+          <h2 class="font-headline-lg text-headline-lg text-center text-on-surface mt-sm">{{ usuario()?.nombre || 'Docente' }}</h2>
+          <p class="font-body-md text-body-md text-center text-on-surface-variant">{{ usuario()?.email }}</p>
+          <span class="mt-xs inline-flex items-center gap-1 bg-primary/10 text-primary rounded-full px-3 py-1 font-label-sm text-label-sm capitalize">
+            <span class="material-symbols-outlined" style="font-size: 14px;">verified</span>
+            {{ usuario()?.role || 'docente' }}
+          </span>
         </div>
       </div>
 
@@ -33,31 +52,27 @@ import { ToastService } from '../../shared/components/toast/toast.service';
             <div class="grid grid-cols-1 md:grid-cols-2 gap-y-base gap-x-lg">
               <div class="border-b border-surface-container py-base">
                 <p class="font-label-sm text-label-sm text-on-surface-variant uppercase mb-xs">Nombre Completo</p>
-                <p class="font-body-md text-body-md font-semibold">{{ displayName }}</p>
+                <p class="font-body-md text-body-md font-semibold">{{ usuario()?.nombre || '—' }}</p>
               </div>
               <div class="border-b border-surface-container py-base">
                 <p class="font-label-sm text-label-sm text-on-surface-variant uppercase mb-xs">Correo Institucional</p>
-                <p class="font-body-md text-body-md font-semibold text-primary">{{ email }}</p>
+                <p class="font-body-md text-body-md font-semibold text-primary">{{ usuario()?.email || '—' }}</p>
               </div>
               <div class="border-b border-surface-container py-base">
                 <p class="font-label-sm text-label-sm text-on-surface-variant uppercase mb-xs">Teléfono de Contacto</p>
-                <p class="font-body-md text-body-md font-semibold">{{ telefonoDefault }}</p>
+                <p class="font-body-md text-body-md font-semibold">{{ perfilExt()?.telefono || '—' }}</p>
               </div>
               <div class="border-b border-surface-container py-base">
                 <p class="font-label-sm text-label-sm text-on-surface-variant uppercase mb-xs">Especialización</p>
-                <p class="font-body-md text-body-md font-semibold">{{ especializacionDefault }}</p>
+                <p class="font-body-md text-body-md font-semibold">{{ perfilExt()?.especializacion || '—' }}</p>
               </div>
               <div class="border-b border-surface-container py-base">
                 <p class="font-label-sm text-label-sm text-on-surface-variant uppercase mb-xs">Fecha de Nacimiento</p>
-                <p class="font-body-md text-body-md font-semibold">{{ fechaNacimientoDefault }}</p>
+                <p class="font-body-md text-body-md font-semibold">{{ perfilExt()?.fechaNacimiento || '—' }}</p>
               </div>
               <div class="border-b border-surface-container py-base">
                 <p class="font-label-sm text-label-sm text-on-surface-variant uppercase mb-xs">Rol</p>
-                <p class="font-body-md text-body-md font-semibold capitalize">{{ authService.getUserRole() }}</p>
-              </div>
-              <div class="border-b border-surface-container py-base">
-                <p class="font-label-sm text-label-sm text-on-surface-variant uppercase mb-xs">Fecha de Ingreso</p>
-                <p class="font-body-md text-body-md font-semibold">15 de Marzo, 2021</p>
+                <p class="font-body-md text-body-md font-semibold capitalize">{{ usuario()?.role || 'docente' }}</p>
               </div>
             </div>
           </div>
@@ -75,7 +90,7 @@ import { ToastService } from '../../shared/components/toast/toast.service';
             </div>
           </button>
           <button class="w-full flex items-center gap-3 p-sm border border-outline/20 rounded-lg hover:bg-surface-container-low transition-colors text-left"
-                  (click)="showChangePassword = true">
+                  (click)="openChangePassword()">
             <span class="material-symbols-outlined text-tertiary">lock</span>
             <div>
               <p class="font-label-md text-label-md text-on-surface">Cambiar Contraseña</p>
@@ -87,20 +102,20 @@ import { ToastService } from '../../shared/components/toast/toast.service';
     </div>
 
     <!-- Edit Profile Modal -->
-    <app-modal [isOpen]="showEditProfile" (close)="closeEditProfile()">
+    <app-modal [isOpen]="showEditProfile" (close)="showEditProfile = false">
       <div class="p-md border-b border-outline/10 flex justify-between items-center">
         <h3 class="font-headline-sm text-headline-sm text-on-surface">Editar Perfil</h3>
         <button class="w-9 h-9 flex items-center justify-center rounded-lg text-on-surface-variant hover:bg-surface-container transition-colors"
-                (click)="closeEditProfile()">
+                (click)="showEditProfile = false">
           <span class="material-symbols-outlined">close</span>
         </button>
       </div>
       <form class="p-md space-y-md" (ngSubmit)="handleEditProfile()">
-        @if (epFeedback) {
+        @if (epFeedback()) {
           <div class="text-body-sm font-body-sm text-center rounded-lg px-4 py-2"
-               [class.text-green-800]="epSuccess" [class.bg-green-100]="epSuccess"
-               [class.text-red-800]="!epSuccess" [class.bg-red-100]="!epSuccess">
-            {{ epFeedback }}
+               [class.text-green-800]="epSuccess()" [class.bg-green-100]="epSuccess()"
+               [class.text-red-800]="!epSuccess()" [class.bg-red-100]="!epSuccess()">
+            {{ epFeedback() }}
           </div>
         }
         <div class="space-y-1">
@@ -109,12 +124,7 @@ import { ToastService } from '../../shared/components/toast/toast.service';
                  class="w-full bg-surface-container-low border border-outline-variant rounded-lg py-2.5 px-3 font-body-md text-body-md focus:border-primary focus:bg-white transition-all" />
         </div>
         <div class="space-y-1">
-          <label class="font-label-sm text-label-sm text-on-surface-variant block">Correo electrónico</label>
-          <input type="email" [(ngModel)]="epEmail" name="epEmail" required
-                 class="w-full bg-surface-container-low border border-outline-variant rounded-lg py-2.5 px-3 font-body-md text-body-md focus:border-primary focus:bg-white transition-all" />
-        </div>
-        <div class="space-y-1">
-          <label class="font-label-sm text-label-sm text-on-surface-variant block">Teléfono de Contacto</label>
+          <label class="font-label-sm text-label-sm text-on-surface-variant block">Teléfono de contacto</label>
           <input type="tel" [(ngModel)]="epTelefono" name="epTelefono"
                  class="w-full bg-surface-container-low border border-outline-variant rounded-lg py-2.5 px-3 font-body-md text-body-md focus:border-primary focus:bg-white transition-all"
                  placeholder="+51 999 999 999" />
@@ -132,9 +142,18 @@ import { ToastService } from '../../shared/components/toast/toast.service';
                  placeholder="15 de Marzo, 1985" />
         </div>
         <div class="flex justify-end gap-2 pt-sm border-t border-outline/10">
-          <button type="button" class="border border-outline/20 px-md py-2.5 rounded-lg font-label-md text-label-md hover:bg-surface-container transition-colors"
-                  (click)="closeEditProfile()">Cancelar</button>
-          <button type="submit" class="bg-primary text-on-primary px-md py-2.5 rounded-lg font-label-md text-label-md hover:bg-primary/90 transition-colors">Guardar</button>
+          <button type="button"
+                  class="border border-outline/20 px-md py-2.5 rounded-lg font-label-md text-label-md hover:bg-surface-container transition-colors"
+                  (click)="showEditProfile = false">Cancelar</button>
+          <button type="submit"
+                  class="bg-primary text-on-primary px-md py-2.5 rounded-lg font-label-md text-label-md hover:bg-primary/90 transition-colors flex items-center gap-2 disabled:opacity-60"
+                  [disabled]="epSaving()">
+            @if (epSaving()) {
+              <span class="material-symbols-outlined animate-spin" style="font-size:18px">progress_activity</span> Guardando...
+            } @else {
+              Guardar
+            }
+          </button>
         </div>
       </form>
     </app-modal>
@@ -149,11 +168,11 @@ import { ToastService } from '../../shared/components/toast/toast.service';
         </button>
       </div>
       <form class="p-md space-y-md" (ngSubmit)="handleChangePassword()">
-        @if (cpFeedback) {
+        @if (cpFeedback()) {
           <div class="text-body-sm font-body-sm text-center rounded-lg px-4 py-2"
-               [class.text-green-800]="cpSuccess" [class.bg-green-100]="cpSuccess"
-               [class.text-red-800]="!cpSuccess" [class.bg-red-100]="!cpSuccess">
-            {{ cpFeedback }}
+               [class.text-green-800]="cpSuccess()" [class.bg-green-100]="cpSuccess()"
+               [class.text-red-800]="!cpSuccess()" [class.bg-red-100]="!cpSuccess()">
+            {{ cpFeedback() }}
           </div>
         }
         <div class="space-y-1">
@@ -190,120 +209,200 @@ import { ToastService } from '../../shared/components/toast/toast.service';
           </div>
         </div>
         <div class="flex justify-end gap-2 pt-sm border-t border-outline/10">
-          <button type="button" class="border border-outline/20 px-md py-2.5 rounded-lg font-label-md text-label-md hover:bg-surface-container transition-colors"
+          <button type="button"
+                  class="border border-outline/20 px-md py-2.5 rounded-lg font-label-md text-label-md hover:bg-surface-container transition-colors"
                   (click)="showChangePassword = false">Cancelar</button>
-          <button type="submit" class="bg-primary text-on-primary px-md py-2.5 rounded-lg font-label-md text-label-md hover:bg-primary/90 transition-colors">Cambiar Contraseña</button>
+          <button type="submit"
+                  class="bg-primary text-on-primary px-md py-2.5 rounded-lg font-label-md text-label-md hover:bg-primary/90 transition-colors flex items-center gap-2 disabled:opacity-60"
+                  [disabled]="cpSaving()">
+            @if (cpSaving()) {
+              <span class="material-symbols-outlined animate-spin" style="font-size:18px">progress_activity</span> Cambiando...
+            } @else {
+              Cambiar Contraseña
+            }
+          </button>
         </div>
       </form>
     </app-modal>
   `,
 })
 export class PerfilComponent {
-  protected authService = inject(AuthService);
+  private readonly auth = inject(Auth);
+  private readonly firestore = inject(Firestore);
+  protected readonly authService = inject(AuthService);
   private readonly toast = inject(ToastService);
 
-  readonly telefonoDefault = '+51 912 345 678';
-  readonly especializacionDefault = 'Matemáticas Avanzadas';
-  readonly fechaNacimientoDefault = '15 de Marzo, 1985';
+  // Datos básicos del usuario (nombre, email, rol) — reactivos desde AuthService
+  readonly usuario = computed(() => this.authService.getUsuario());
 
+  readonly initiales = computed(() => {
+    const nombre = this.usuario()?.nombre ?? '';
+    return nombre.split(' ').map((n) => n[0]).slice(0, 2).join('').toUpperCase() || 'D';
+  });
+
+  // Datos extendidos del docente (teléfono, especialización, etc.) — leídos en tiempo real de Firestore
+  private readonly _perfilExt = signal<PerfilExtendido | null>(null);
+  readonly perfilExt = this._perfilExt.asReadonly();
+
+  // Edit profile
   showEditProfile = false;
-  showChangePassword = false;
-
   epNombre = '';
-  epEmail = '';
   epTelefono = '';
   epEspecializacion = '';
   epFechaNacimiento = '';
-  epFeedback = '';
-  epSuccess = false;
+  epFeedback = signal('');
+  epSuccess = signal(false);
+  epSaving = signal(false);
 
+  // Change password
+  showChangePassword = false;
   cpCurrent = '';
   cpNew = '';
   cpConfirm = '';
-  cpFeedback = '';
-  cpSuccess = false;
+  cpFeedback = signal('');
+  cpSuccess = signal(false);
+  cpSaving = signal(false);
   showCurrent = false;
   showNew = false;
   showConfirm = false;
 
-  get displayName(): string {
-    const name = this.authService.getUsername();
-    return name ? name.charAt(0).toUpperCase() + name.slice(1) : 'Docente';
-  }
-
-  get email(): string {
-    const user = this.authService.getUsername();
-    return user ? `${user}@arguedas.edu.pe` : 'docente@arguedas.edu.pe';
+  constructor() {
+    // Cuando el estado de auth cambia, suscribirse al documento del usuario en Firestore
+    effect(() => {
+      const state = this.authService.authState();
+      const uid = state.user?.uid;
+      if (uid) {
+        const docRef = doc(this.firestore, `usuarios/${uid}`);
+        docData(docRef).subscribe((data: any) => {
+          this._perfilExt.set({
+            telefono: data?.telefono ?? '',
+            especializacion: data?.especializacion ?? '',
+            fechaNacimiento: data?.fechaNacimiento ?? '',
+          });
+        });
+      }
+    });
   }
 
   openEditProfile(): void {
-    this.epNombre = this.displayName;
-    this.epEmail = this.email;
-    this.epTelefono = this.telefonoDefault;
-    this.epEspecializacion = this.especializacionDefault;
-    this.epFechaNacimiento = this.fechaNacimientoDefault;
-    this.epFeedback = '';
+    this.epNombre = this.usuario()?.nombre ?? '';
+    this.epTelefono = this._perfilExt()?.telefono ?? '';
+    this.epEspecializacion = this._perfilExt()?.especializacion ?? '';
+    this.epFechaNacimiento = this._perfilExt()?.fechaNacimiento ?? '';
+    this.epFeedback.set('');
+    this.epSuccess.set(false);
     this.showEditProfile = true;
   }
 
-  closeEditProfile(): void {
-    this.showEditProfile = false;
-    this.epFeedback = '';
-  }
-
-  handleEditProfile(): void {
-    if (!this.epNombre || !this.epEmail || !this.epTelefono || !this.epEspecializacion || !this.epFechaNacimiento) {
-      this.epFeedback = 'Todos los campos son obligatorios.';
-      this.epSuccess = false;
-      return;
-    }
-    if (!this.epEmail.includes('@')) {
-      this.epFeedback = 'Ingresa un correo electrónico válido.';
-      this.epSuccess = false;
-      return;
-    }
-    this.epFeedback = 'Perfil actualizado correctamente.';
-    this.epSuccess = true;
-    setTimeout(() => {
-      this.showEditProfile = false;
-      this.epFeedback = '';
-    }, 1200);
-  }
-
-  handleChangePassword(): void {
-    if (!this.cpCurrent || !this.cpNew || !this.cpConfirm) {
-      this.cpFeedback = 'Todos los campos son obligatorios.';
-      this.cpSuccess = false;
-      return;
-    }
-    if (this.cpNew.length < 8) {
-      this.cpFeedback = 'La nueva contraseña debe tener al menos 8 caracteres.';
-      this.cpSuccess = false;
-      return;
-    }
-    if (!/(?=.*[a-z])(?=.*[A-Z])(?=.*\d)/.test(this.cpNew)) {
-      this.cpFeedback = 'La contraseña debe incluir mayúscula, minúscula y número.';
-      this.cpSuccess = false;
-      return;
-    }
-    if (this.cpNew !== this.cpConfirm) {
-      this.cpFeedback = 'Las contraseñas nuevas no coinciden.';
-      this.cpSuccess = false;
-      return;
-    }
-    if (this.cpCurrent === this.cpNew) {
-      this.cpFeedback = 'La nueva contraseña debe ser diferente a la actual.';
-      this.cpSuccess = false;
-      return;
-    }
-    this.cpFeedback = 'Contraseña cambiada exitosamente.';
-    this.cpSuccess = true;
+  openChangePassword(): void {
     this.cpCurrent = '';
     this.cpNew = '';
     this.cpConfirm = '';
-    setTimeout(() => {
-      this.showChangePassword = false;
-      this.cpFeedback = '';
-    }, 1200);
+    this.cpFeedback.set('');
+    this.cpSuccess.set(false);
+    this.showChangePassword = true;
+  }
+
+  async handleEditProfile(): Promise<void> {
+    if (!this.epNombre.trim()) {
+      this.epFeedback.set('El nombre no puede estar vacío.');
+      this.epSuccess.set(false);
+      return;
+    }
+
+    const currentUser: User | null = this.auth.currentUser;
+    if (!currentUser) {
+      this.epFeedback.set('Sesión expirada. Volvé a iniciar sesión.');
+      this.epSuccess.set(false);
+      return;
+    }
+
+    this.epSaving.set(true);
+    try {
+      // 1. Actualizar displayName en Firebase Auth
+      await updateProfile(currentUser, { displayName: this.epNombre.trim() });
+
+      // 2. Actualizar en Firestore: nombre + campos extendidos del docente
+      const userDocRef = doc(this.firestore, `usuarios/${currentUser.uid}`);
+      await updateDoc(userDocRef, {
+        nombre: this.epNombre.trim(),
+        telefono: this.epTelefono.trim(),
+        especializacion: this.epEspecializacion.trim(),
+        fechaNacimiento: this.epFechaNacimiento.trim(),
+      });
+
+      this.epFeedback.set('Perfil actualizado correctamente.');
+      this.epSuccess.set(true);
+      this.toast.show('Perfil actualizado', 'success');
+      setTimeout(() => { this.showEditProfile = false; this.epFeedback.set(''); }, 1200);
+    } catch (err: any) {
+      console.error(err);
+      this.epFeedback.set('Error al actualizar el perfil. Intentá de nuevo.');
+      this.epSuccess.set(false);
+    } finally {
+      this.epSaving.set(false);
+    }
+  }
+
+  async handleChangePassword(): Promise<void> {
+    if (!this.cpCurrent || !this.cpNew || !this.cpConfirm) {
+      this.cpFeedback.set('Todos los campos son obligatorios.');
+      this.cpSuccess.set(false);
+      return;
+    }
+    if (this.cpNew.length < 8) {
+      this.cpFeedback.set('La nueva contraseña debe tener al menos 8 caracteres.');
+      this.cpSuccess.set(false);
+      return;
+    }
+    if (!/[a-z]/.test(this.cpNew) || !/[A-Z]/.test(this.cpNew) || !/\d/.test(this.cpNew)) {
+      this.cpFeedback.set('La contraseña debe incluir mayúscula, minúscula y número.');
+      this.cpSuccess.set(false);
+      return;
+    }
+    if (this.cpNew !== this.cpConfirm) {
+      this.cpFeedback.set('Las contraseñas nuevas no coinciden.');
+      this.cpSuccess.set(false);
+      return;
+    }
+    if (this.cpCurrent === this.cpNew) {
+      this.cpFeedback.set('La nueva contraseña debe ser diferente a la actual.');
+      this.cpSuccess.set(false);
+      return;
+    }
+
+    const currentUser: User | null = this.auth.currentUser;
+    if (!currentUser || !currentUser.email) {
+      this.cpFeedback.set('Sesión expirada. Volvé a iniciar sesión.');
+      this.cpSuccess.set(false);
+      return;
+    }
+
+    this.cpSaving.set(true);
+    try {
+      const credential = EmailAuthProvider.credential(currentUser.email, this.cpCurrent);
+      await reauthenticateWithCredential(currentUser, credential);
+      await updatePassword(currentUser, this.cpNew);
+
+      this.cpFeedback.set('Contraseña cambiada exitosamente.');
+      this.cpSuccess.set(true);
+      this.cpCurrent = '';
+      this.cpNew = '';
+      this.cpConfirm = '';
+      this.toast.show('Contraseña actualizada', 'success');
+      setTimeout(() => { this.showChangePassword = false; this.cpFeedback.set(''); }, 1500);
+    } catch (err: any) {
+      console.error(err);
+      if (err.code === 'auth/wrong-password' || err.code === 'auth/invalid-credential') {
+        this.cpFeedback.set('La contraseña actual es incorrecta.');
+      } else if (err.code === 'auth/too-many-requests') {
+        this.cpFeedback.set('Demasiados intentos. Esperá unos minutos.');
+      } else {
+        this.cpFeedback.set('Error al cambiar la contraseña. Intentá de nuevo.');
+      }
+      this.cpSuccess.set(false);
+    } finally {
+      this.cpSaving.set(false);
+    }
   }
 }

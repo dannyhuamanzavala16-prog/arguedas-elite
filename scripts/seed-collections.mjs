@@ -1,6 +1,6 @@
 /**
  * seed-collections.mjs
- * Puebla Firestore con datos iniciales de estudiantes, docentes y materiales.
+ * Puebla Firestore con datos iniciales de estudiantes, docentes, materiales y asistencias.
  * Uso: node scripts/seed-collections.mjs
  */
 
@@ -55,10 +55,18 @@ async function signIn(email, password) {
 }
 
 function toFirestoreValue(value) {
+  if (value === null || value === undefined) return { nullValue: null };
   if (typeof value === 'string') return { stringValue: value };
-  if (Array.isArray(value)) return { arrayValue: { values: value.map(toFirestoreValue) } };
   if (typeof value === 'boolean') return { booleanValue: value };
   if (typeof value === 'number') return { integerValue: value };
+  if (Array.isArray(value)) return { arrayValue: { values: value.map(toFirestoreValue) } };
+  if (typeof value === 'object') {
+    const fields = {};
+    for (const [k, v] of Object.entries(value)) {
+      fields[k] = toFirestoreValue(v);
+    }
+    return { mapValue: { fields } };
+  }
   return { nullValue: null };
 }
 
@@ -96,6 +104,19 @@ async function listDocIds(collection, idToken) {
 
 function slugId(nombre) {
   return nombre.toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g, '').replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, '').substring(0, 40);
+}
+
+function getTodayString() {
+  const d = new Date();
+  const year = d.getFullYear();
+  const month = String(d.getMonth() + 1).padStart(2, '0');
+  const day = String(d.getDate()).padStart(2, '0');
+  return `${year}-${month}-${day}`;
+}
+
+function getDocId(fecha, curso, grupo) {
+  const clean = (str) => str.toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g, '').replace(/[^a-z0-9]+/g, '-');
+  return `${fecha}_${clean(curso)}_${clean(grupo)}`;
 }
 
 // ─── Main ─────────────────────────────────────────────────────────────────────
@@ -157,8 +178,47 @@ async function main() {
     }
   }
 
+  // Asistencias — limpiar anteriores y pre-poblar 5 registros por cada curso y grupo
+  console.log('\n📝 Asistencias (limpiando duplicados de asistencia en la colección asistencias...):');
+  const existingAsisIds = await listDocIds('asistencias', idToken);
+  for (const id of existingAsisIds) await deleteDoc('asistencias', id, idToken);
+  console.log(`  🗑️  ${existingAsisIds.length} asistencias anteriores eliminadas`);
+
+  const ASISTENCIA_CURSOS = ['Cálculo Diferencial e Integral', 'Álgebra Lineal', 'Física Mecánica', 'Química General'];
+  const ASISTENCIA_GRUPOS = ['Grupo A', 'Grupo B'];
+
+  console.log('📝 Generando asistencias de prueba (5 alumnos por curso/grupo):');
+  for (const curso of ASISTENCIA_CURSOS) {
+    for (const grupo of ASISTENCIA_GRUPOS) {
+      // Poblar para el día de hoy
+      const todayStr = getTodayString();
+      const docId = getDocId(todayStr, curso, grupo);
+      
+      const asistenciaData = {
+        fecha: todayStr,
+        curso: curso,
+        grupo: grupo,
+        updatedAt: new Date().toISOString(),
+        estudiantes: ESTUDIANTES.map((e, index) => ({
+          id: e.codigo,
+          nombre: e.nombre,
+          presente: index % 4 !== 0, // Variar la asistencia
+          nota: index % 4 === 0 ? 'Falta justificada' : ''
+        }))
+      };
+
+      process.stdout.write(`  ⏳ Asistencia [${curso} - ${grupo}]...`);
+      try {
+        await patchDoc('asistencias', docId, asistenciaData, idToken);
+        console.log(' ✅');
+      } catch (e) {
+        console.log(` ❌ ${e.message}`);
+      }
+    }
+  }
+
   console.log('\n✅ Seed completo.');
-  console.log(`   📊 ${ESTUDIANTES.length} estudiantes | ${DOCENTES.length} docentes | ${MATERIALES.length} materiales`);
+  console.log(`   📊 ${ESTUDIANTES.length} estudiantes | ${DOCENTES.length} docentes | ${MATERIALES.length} materiales | ${ASISTENCIA_CURSOS.length * ASISTENCIA_GRUPOS.length} hojas de asistencia para hoy`);
 }
 
 main().catch(console.error);
