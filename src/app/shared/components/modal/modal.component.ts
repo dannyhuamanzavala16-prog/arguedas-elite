@@ -6,11 +6,11 @@ import { Component, EventEmitter, Input, Output, HostListener, OnChanges, Simple
   template: `
     @if (isOpen) {
       <div
-        class="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4"
+        class="fixed inset-0 z-50 flex items-end sm:items-center justify-center bg-black/50 sm:p-4"
         (click)="onBackdrop($event)"
       >
         <div
-          class="bg-surface-container-lowest rounded-xl shadow-2xl max-w-lg w-full max-h-[90vh] overflow-y-auto"
+          class="bg-surface-container-lowest w-full max-h-[85vh] sm:max-h-[90vh] overflow-y-auto rounded-t-2xl sm:rounded-xl shadow-2xl sm:max-w-lg"
           (click)="$event.stopPropagation()"
         >
           <ng-content />

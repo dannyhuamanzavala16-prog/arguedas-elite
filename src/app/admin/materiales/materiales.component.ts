@@ -33,10 +33,10 @@ const MAX_SIZE_MB = 50;
     <div class="max-w-container-max mx-auto p-md md:p-lg">
       <div class="flex flex-col md:flex-row md:items-end justify-between gap-md mb-lg">
         <div>
-          <h2 class="font-headline-xl text-headline-xl text-primary-container mb-2">Gestión de Materiales</h2>
+          <h2 class="font-headline-xl text-headline-md md:text-headline-xl text-primary-container mb-2">Gestión de Materiales</h2>
           <p class="font-body-md text-body-md text-on-surface-variant">Sube, organiza y administra los materiales académicos.</p>
         </div>
-        <button class="bg-primary text-on-primary px-md py-sm rounded-lg font-label-md text-label-md flex items-center gap-2 shadow-lg shadow-primary/20 hover:scale-[1.02] transition-transform"
+        <button class="w-full md:w-auto bg-primary text-on-primary px-md py-sm rounded-lg font-label-md text-label-md flex items-center justify-center gap-2 shadow-lg shadow-primary/20 hover:scale-[1.02] transition-transform"
                 (click)="openUploadModal()">
           <span class="material-symbols-outlined">upload</span> Subir Archivo
         </button>
@@ -74,7 +74,7 @@ const MAX_SIZE_MB = 50;
       <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-gutter">
         @for (mat of paginated(); track mat.id) {
           <div class="group bg-surface-container-lowest rounded-xl p-md border border-outline/10 shadow-sm hover:shadow-md transition-all relative overflow-hidden">
-            <div class="absolute top-0 right-0 p-2 opacity-0 group-hover:opacity-100 transition-opacity flex gap-1">
+            <div class="absolute top-0 right-0 p-2 opacity-100 md:opacity-0 md:group-hover:opacity-100 transition-opacity flex gap-1">
               @if (mat.url) {
                 <button type="button"
                    class="w-9 h-9 flex items-center justify-center rounded-lg text-on-surface-variant hover:bg-primary/10 hover:text-primary transition-colors material-symbols-outlined"

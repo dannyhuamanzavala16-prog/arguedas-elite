@@ -1,4 +1,4 @@
-import { Component, inject } from '@angular/core';
+import { Component, inject, signal } from '@angular/core';
 import { RouterOutlet, RouterLink, RouterLinkActive } from '@angular/router';
 import { AuthService } from '../auth/services/auth.service';
 
@@ -10,6 +10,16 @@ import { AuthService } from '../auth/services/auth.service';
   styleUrl: './admin-layout.component.css',
 })
 export class AdminLayoutComponent {
+  protected sidebarOpen = signal(false);
+
+  toggleSidebar(): void {
+    this.sidebarOpen.update(v => !v);
+  }
+
+  closeSidebar(): void {
+    this.sidebarOpen.set(false);
+  }
+
   protected auth = inject(AuthService);
 
   readonly navLinks = [

@@ -19,10 +19,10 @@ const ROWS_PER_PAGE = 7;
       <!-- Header -->
       <div class="flex flex-col md:flex-row md:items-end justify-between gap-md mb-lg">
         <div>
-          <h2 class="font-headline-xl text-headline-xl text-primary-container mb-2">Panel de Docentes</h2>
+          <h2 class="font-headline-xl text-headline-md md:text-headline-xl text-primary-container mb-2">Panel de Docentes</h2>
           <p class="font-body-md text-body-md text-on-surface-variant">Administra la base de datos de docentes y sus asignaciones.</p>
         </div>
-        <button class="bg-primary text-on-primary px-md py-sm rounded-lg font-label-md text-label-md flex items-center gap-2 shadow-lg shadow-primary/20 hover:scale-[1.02] transition-transform"
+        <button class="w-full md:w-auto bg-primary text-on-primary px-md py-sm rounded-lg font-label-md text-label-md flex items-center justify-center gap-2 shadow-lg shadow-primary/20 hover:scale-[1.02] transition-transform"
                 (click)="openCreateModal()">
           <span class="material-symbols-outlined">person_add</span> Registrar Docente
         </button>
@@ -34,13 +34,15 @@ const ROWS_PER_PAGE = 7;
           <div>
             <h3 class="font-headline-sm text-headline-sm text-on-surface">Listado de Docentes</h3>
           </div>
-          <button class="flex items-center gap-2 border border-outline/20 px-sm py-1.5 rounded-lg text-label-md font-label-md hover:bg-surface-container transition-colors"
-                  (click)="toggleFilters()">
-            <span class="material-symbols-outlined text-[18px]">filter_list</span> Filtrar
-          </button>
-          <button class="flex items-center gap-2 border border-outline/20 px-sm py-1.5 rounded-lg text-label-md font-label-md hover:bg-surface-container transition-colors">
-            <span class="material-symbols-outlined text-[18px]">download</span> Exportar
-          </button>
+          <div class="flex items-center gap-sm">
+            <button class="flex items-center gap-2 border border-outline/20 px-sm py-1.5 rounded-lg text-label-md font-label-md hover:bg-surface-container transition-colors"
+                    (click)="toggleFilters()">
+              <span class="material-symbols-outlined text-[18px]">filter_list</span> Filtrar
+            </button>
+            <button class="flex items-center gap-2 border border-outline/20 px-sm py-1.5 rounded-lg text-label-md font-label-md hover:bg-surface-container transition-colors">
+              <span class="material-symbols-outlined text-[18px]">download</span> Exportar
+            </button>
+          </div>
         </div>
 
         @if (showFilters) {
