@@ -1,4 +1,4 @@
-import { Component, computed, inject, OnInit, signal } from '@angular/core';
+import { Component, computed, inject, signal } from '@angular/core';
 import { FormsModule } from '@angular/forms';
 import {
   Auth,
@@ -9,6 +9,7 @@ import {
   User,
 } from '@angular/fire/auth';
 import { Firestore, doc, updateDoc } from '@angular/fire/firestore';
+import { Router } from '@angular/router';
 import { AuthService } from '../../auth/services/auth.service';
 import { ModalComponent } from '../../shared/components/modal/modal.component';
 import { ToastService } from '../../shared/components/toast/toast.service';
@@ -96,7 +97,7 @@ import { ToastService } from '../../shared/components/toast/toast.service';
             <span class="material-symbols-outlined">close</span>
           </button>
         </div>
-        <form class="p-md space-y-md" (ngSubmit)="handleEditProfile()">
+        <form class="p-md space-y-md" (ngSubmit)="handleEditProfile($event)">
           @if (epFeedback()) {
             <div class="text-body-sm font-body-sm text-center rounded-lg px-4 py-2"
                  [class.text-green-800]="epSuccess()" [class.bg-green-100]="epSuccess()"
@@ -135,7 +136,7 @@ import { ToastService } from '../../shared/components/toast/toast.service';
             <span class="material-symbols-outlined">close</span>
           </button>
         </div>
-        <form class="p-md space-y-md" (ngSubmit)="handleChangePassword()">
+        <form class="p-md space-y-md" (ngSubmit)="handleChangePassword($event)">
           @if (cpFeedback()) {
             <div class="text-body-sm font-body-sm text-center rounded-lg px-4 py-2"
                  [class.text-green-800]="cpSuccess()" [class.bg-green-100]="cpSuccess()"
@@ -213,6 +214,7 @@ import { ToastService } from '../../shared/components/toast/toast.service';
 export class PerfilComponent {
   private readonly auth = inject(Auth);
   private readonly firestore = inject(Firestore);
+  private readonly router = inject(Router);
   protected readonly authService = inject(AuthService);
   private readonly toast = inject(ToastService);
 
@@ -262,7 +264,12 @@ export class PerfilComponent {
     this.showChangePassword = true;
   }
 
-  async handleEditProfile(): Promise<void> {
+  async handleEditProfile(event?: Event): Promise<void> {
+    console.log('[PerfilAdmin] handleEditProfile: INICIO, ruta actual:', window.location.pathname);
+    if (event) {
+      event.preventDefault();
+      event.stopPropagation();
+    }
     if (!this.epNombre.trim()) {
       this.epFeedback.set('El nombre no puede estar vacío.');
       this.epSuccess.set(false);
@@ -277,6 +284,7 @@ export class PerfilComponent {
     }
 
     this.epSaving.set(true);
+    this.authService.markProfileUpdate();
     try {
       // 1. Actualizar displayName en Firebase Auth
       await updateProfile(currentUser, { displayName: this.epNombre.trim() });
@@ -288,17 +296,28 @@ export class PerfilComponent {
       this.epFeedback.set('Perfil actualizado correctamente.');
       this.epSuccess.set(true);
       this.toast.show('Nombre actualizado', 'success');
-      setTimeout(() => { this.showEditProfile = false; this.epFeedback.set(''); }, 1200);
+      console.log('[PerfilAdmin] handleEditProfile: éxito, cerrando modal, ruta actual:', window.location.pathname);
+      setTimeout(() => {
+        this.showEditProfile = false;
+        this.epFeedback.set('');
+        console.log('[PerfilAdmin] handleEditProfile: modal cerrado, ruta:', window.location.pathname);
+      }, 1200);
     } catch (err: any) {
       console.error(err);
       this.epFeedback.set('Error al actualizar el perfil. Intentá de nuevo.');
       this.epSuccess.set(false);
     } finally {
       this.epSaving.set(false);
+      // El flag _ignoringNextNull se limpia solo vía timeout en markProfileUpdate()
     }
   }
 
-  async handleChangePassword(): Promise<void> {
+  async handleChangePassword(event?: Event): Promise<void> {
+    console.log('[PerfilAdmin] handleChangePassword: INICIO, ruta actual:', window.location.pathname);
+    if (event) {
+      event.preventDefault();
+      event.stopPropagation();
+    }
     if (!this.cpCurrent || !this.cpNew || !this.cpConfirm) {
       this.cpFeedback.set('Todos los campos son obligatorios.');
       this.cpSuccess.set(false);
@@ -333,6 +352,7 @@ export class PerfilComponent {
     }
 
     this.cpSaving.set(true);
+    this.authService.markProfileUpdate();
     try {
       // Reautenticar antes de cambiar la contraseña (requisito de Firebase)
       const credential = EmailAuthProvider.credential(currentUser.email, this.cpCurrent);
@@ -347,7 +367,12 @@ export class PerfilComponent {
       this.cpNew = '';
       this.cpConfirm = '';
       this.toast.show('Contraseña actualizada', 'success');
-      setTimeout(() => { this.showChangePassword = false; this.cpFeedback.set(''); }, 1500);
+      console.log('[PerfilAdmin] handleChangePassword: éxito, cerrando modal, ruta actual:', window.location.pathname);
+      setTimeout(() => {
+        this.showChangePassword = false;
+        this.cpFeedback.set('');
+        console.log('[PerfilAdmin] handleChangePassword: modal cerrado, ruta:', window.location.pathname);
+      }, 1500);
     } catch (err: any) {
       console.error(err);
       if (err.code === 'auth/wrong-password' || err.code === 'auth/invalid-credential') {
@@ -360,6 +385,7 @@ export class PerfilComponent {
       this.cpSuccess.set(false);
     } finally {
       this.cpSaving.set(false);
+      // El flag _ignoringNextNull se limpia solo vía timeout en markProfileUpdate()
     }
   }
 }

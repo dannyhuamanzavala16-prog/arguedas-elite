@@ -105,7 +105,7 @@ import { ToastService } from '../../shared/components/toast/toast.service';
           <span class="material-symbols-outlined">close</span>
         </button>
       </div>
-      <form class="p-md space-y-md" (ngSubmit)="handleEditProfile()">
+      <form class="p-md space-y-md" (ngSubmit)="handleEditProfile($event)">
         @if (epFeedback) {
           <div class="text-body-sm font-body-sm text-center rounded-lg px-4 py-2"
                [class.text-green-800]="epSuccess" [class.bg-green-100]="epSuccess"
@@ -158,7 +158,7 @@ import { ToastService } from '../../shared/components/toast/toast.service';
           <span class="material-symbols-outlined">close</span>
         </button>
       </div>
-      <form class="p-md space-y-md" (ngSubmit)="handleChangePassword()">
+      <form class="p-md space-y-md" (ngSubmit)="handleChangePassword($event)">
         @if (cpFeedback) {
           <div class="text-body-sm font-body-sm text-center rounded-lg px-4 py-2"
                [class.text-green-800]="cpSuccess" [class.bg-green-100]="cpSuccess"
@@ -261,7 +261,11 @@ export class PerfilComponent {
     this.epFeedback = '';
   }
 
-  handleEditProfile(): void {
+  handleEditProfile(event?: Event): void {
+    if (event) {
+      event.preventDefault();
+      event.stopPropagation();
+    }
     if (!this.epNombre || !this.epEmail || !this.epTelefono || !this.epFechaNacimiento || !this.epDireccion) {
       this.epFeedback = 'Todos los campos son obligatorios.';
       this.epSuccess = false;
@@ -280,7 +284,11 @@ export class PerfilComponent {
     }, 1200);
   }
 
-  handleChangePassword(): void {
+  handleChangePassword(event?: Event): void {
+    if (event) {
+      event.preventDefault();
+      event.stopPropagation();
+    }
     if (!this.cpCurrent || !this.cpNew || !this.cpConfirm) {
       this.cpFeedback = 'Todos los campos son obligatorios.';
       this.cpSuccess = false;

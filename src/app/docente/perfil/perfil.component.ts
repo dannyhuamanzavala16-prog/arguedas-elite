@@ -110,7 +110,7 @@ interface PerfilExtendido {
           <span class="material-symbols-outlined">close</span>
         </button>
       </div>
-      <form class="p-md space-y-md" (ngSubmit)="handleEditProfile()">
+      <form class="p-md space-y-md" (ngSubmit)="handleEditProfile($event)">
         @if (epFeedback()) {
           <div class="text-body-sm font-body-sm text-center rounded-lg px-4 py-2"
                [class.text-green-800]="epSuccess()" [class.bg-green-100]="epSuccess()"
@@ -167,7 +167,7 @@ interface PerfilExtendido {
           <span class="material-symbols-outlined">close</span>
         </button>
       </div>
-      <form class="p-md space-y-md" (ngSubmit)="handleChangePassword()">
+      <form class="p-md space-y-md" (ngSubmit)="handleChangePassword($event)">
         @if (cpFeedback()) {
           <div class="text-body-sm font-body-sm text-center rounded-lg px-4 py-2"
                [class.text-green-800]="cpSuccess()" [class.bg-green-100]="cpSuccess()"
@@ -303,7 +303,11 @@ export class PerfilComponent {
     this.showChangePassword = true;
   }
 
-  async handleEditProfile(): Promise<void> {
+  async handleEditProfile(event?: Event): Promise<void> {
+    if (event) {
+      event.preventDefault();
+      event.stopPropagation();
+    }
     if (!this.epNombre.trim()) {
       this.epFeedback.set('El nombre no puede estar vacío.');
       this.epSuccess.set(false);
@@ -318,6 +322,7 @@ export class PerfilComponent {
     }
 
     this.epSaving.set(true);
+    this.authService.markProfileUpdate();
     try {
       // 1. Actualizar displayName en Firebase Auth
       await updateProfile(currentUser, { displayName: this.epNombre.trim() });
@@ -341,10 +346,15 @@ export class PerfilComponent {
       this.epSuccess.set(false);
     } finally {
       this.epSaving.set(false);
+      // El flag _ignoringNextNull se limpia solo vía timeout en markProfileUpdate()
     }
   }
 
-  async handleChangePassword(): Promise<void> {
+  async handleChangePassword(event?: Event): Promise<void> {
+    if (event) {
+      event.preventDefault();
+      event.stopPropagation();
+    }
     if (!this.cpCurrent || !this.cpNew || !this.cpConfirm) {
       this.cpFeedback.set('Todos los campos son obligatorios.');
       this.cpSuccess.set(false);
@@ -379,6 +389,7 @@ export class PerfilComponent {
     }
 
     this.cpSaving.set(true);
+    this.authService.markProfileUpdate();
     try {
       const credential = EmailAuthProvider.credential(currentUser.email, this.cpCurrent);
       await reauthenticateWithCredential(currentUser, credential);
@@ -403,6 +414,7 @@ export class PerfilComponent {
       this.cpSuccess.set(false);
     } finally {
       this.cpSaving.set(false);
+      // El flag _ignoringNextNull se limpia solo vía timeout en markProfileUpdate()
     }
   }
 }

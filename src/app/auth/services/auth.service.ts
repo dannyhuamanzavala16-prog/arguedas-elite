@@ -1,7 +1,7 @@
 import { Injectable, inject, signal } from '@angular/core';
 import { Auth, signInWithEmailAndPassword, signOut, onAuthStateChanged, User } from '@angular/fire/auth';
 import { Firestore, doc, docData } from '@angular/fire/firestore';
-import { Observable, from, map, of, switchMap } from 'rxjs';
+import { Observable, from, map, of, switchMap, Subscription } from 'rxjs';
 export type { UserRole } from '../../shared/models/usuario.model';
 import { UserRole, Usuario } from '../../shared/models/usuario.model';
 
@@ -29,15 +29,43 @@ export class AuthService {
     estudiante: '/estudiante/dashboard',
   };
 
+  private userSub?: Subscription;
+  /** Evita que el null transitorio de onAuthStateChanged (causado por
+   *  updateProfile al refrescar el token) borre el estado mientras el
+   *  usuario sigue logueado. Se activa antes de cada updateProfile. */
+  private _ignoringNextNull = false;
+  private _ignoreNullTimer?: ReturnType<typeof setTimeout>;
+
   constructor() {
     // Escucha cambios en el estado de autenticación de Firebase
     onAuthStateChanged(this.auth, (user) => {
+      if (!user && this._ignoringNextNull) {
+        // null transitorio por refresh de token — lo ignoramos
+        return;
+      }
+      this.userSub?.unsubscribe();
       if (user) {
-        this.loadUserData(user);
+        this.userSub = this.loadUserData(user).subscribe();
       } else {
         this.state.set({ user: null, usuario: null, role: null });
       }
     });
+  }
+
+  /** Llamar ANTES de updateProfile() para suprimir el null transitorio */
+  markProfileUpdate(): void {
+    this._ignoringNextNull = true;
+    clearTimeout(this._ignoreNullTimer);
+    // Ventana de seguridad: si Firebase no emite el usuario en 5s, resetea
+    this._ignoreNullTimer = setTimeout(() => {
+      this._ignoringNextNull = false;
+    }, 5000);
+  }
+
+  /** Llamar DESPUÉS de que updateProfile() resuelva */
+  clearProfileUpdateFlag(): void {
+    this._ignoringNextNull = false;
+    clearTimeout(this._ignoreNullTimer);
   }
 
   /** Inicia sesión con email y contraseña */
@@ -50,6 +78,7 @@ export class AuthService {
 
   /** Cierra sesión */
   async logout(): Promise<void> {
+    this.userSub?.unsubscribe();
     await signOut(this.auth);
     this.state.set({ user: null, usuario: null, role: null });
   }
@@ -86,7 +115,7 @@ export class AuthService {
 
   /** @deprecated Usá getUsuario()?.nombre o getUsuario()?.email */
   getUsername(): string | null {
-    return this.state().usuario?.username ?? this.state().usuario?.email ?? null;
+    return this.state().usuario?.nombre ?? this.state().usuario?.username ?? this.state().usuario?.email ?? null;
   }
 
   getDefaultRoute(): string {
