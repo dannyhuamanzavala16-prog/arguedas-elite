@@ -30,12 +30,12 @@ const MAX_SIZE_MB = 50;
   template: `
     <div class="p-md md:p-lg max-w-container-max mx-auto w-full">
       <!-- Header -->
-      <div class="flex flex-col md:flex-row justify-between items-start md:items-end mb-lg gap-gutter">
+      <div class="flex flex-col md:flex-row justify-between items-start md:items-end mb-lg gap-md">
         <div>
-          <h3 class="font-headline-lg text-headline-lg text-primary mb-2">Gestión de Materiales</h3>
+          <h3 class="font-headline-lg text-headline-lg text-primary mb-1 font-bold">Gestión de Materiales</h3>
           <p class="font-body-sm text-body-sm text-on-surface-variant">{{ service.materiales().length }} archivo(s) en total</p>
         </div>
-        <button class="bg-primary text-on-primary px-md py-sm rounded-lg font-label-md text-label-md flex items-center gap-2 shadow-lg hover:bg-primary/90 transition-all active:scale-95"
+        <button class="w-full md:w-auto bg-primary text-on-primary px-md py-sm rounded-lg font-label-md text-label-md flex items-center justify-center gap-2 shadow-lg hover:bg-primary/90 transition-all active:scale-95"
                 (click)="openUploadModal()">
           <span class="material-symbols-outlined">upload</span>
           Subir Material
@@ -43,82 +43,100 @@ const MAX_SIZE_MB = 50;
       </div>
 
       <!-- Filter Bar -->
-      <div class="bg-surface-container-lowest p-sm rounded-xl shadow-sm border border-outline-variant/20 mb-md flex flex-wrap gap-4 items-center">
-        <div class="flex-1 min-w-[300px] relative">
+      <div class="bg-surface-container-lowest p-md rounded-xl shadow-sm border border-outline-variant/20 mb-md grid grid-cols-1 sm:grid-cols-3 gap-md">
+        <div class="relative sm:col-span-1">
           <span class="material-symbols-outlined absolute left-3 top-1/2 -translate-y-1/2 text-outline">search</span>
-          <input type="text" [(ngModel)]="searchQuery"
-                 class="w-full pl-10 pr-4 py-2 bg-surface-container-low border-none rounded-lg focus:ring-2 focus:ring-primary/20 text-body-sm font-body-sm outline-none"
-                 placeholder="Buscar por nombre de archivo o etiqueta..." />
+          <input type="text" [ngModel]="searchQuery()" (ngModelChange)="searchQuery.set($event)"
+                 class="w-full pl-10 pr-4 py-2 bg-surface-container-low border border-outline-variant/30 rounded-lg focus:border-primary focus:bg-white text-body-sm font-body-sm outline-none transition-all"
+                 placeholder="Buscar por nombre o curso..." />
         </div>
-        <div class="flex items-center gap-2">
-          <div class="relative">
-            <select [(ngModel)]="formatFilter"
-                    class="appearance-none bg-surface-container-low border-none rounded-lg text-body-sm font-body-sm px-4 py-2 pr-8 focus:ring-2 focus:ring-primary/20 cursor-pointer">
-              <option value="">Todos los formatos</option>
-              <option value="PDF">PDF</option>
-              <option value="DOCX">Documentos</option>
-              <option value="ZIP">Comprimidos</option>
-              <option value="MP4">Video</option>
-            </select>
-            <span class="material-symbols-outlined absolute right-2 top-1/2 -translate-y-1/2 pointer-events-none text-on-surface-variant text-[18px]">expand_more</span>
-          </div>
-          <div class="relative">
-            <select [(ngModel)]="sortMode"
-                    class="appearance-none bg-surface-container-low border-none rounded-lg text-body-sm font-body-sm px-4 py-2 pr-8 focus:ring-2 focus:ring-primary/20 cursor-pointer">
-              <option value="recientes">Más recientes</option>
-              <option value="nombre">Nombre A-Z</option>
-            </select>
-            <span class="material-symbols-outlined absolute right-2 top-1/2 -translate-y-1/2 pointer-events-none text-on-surface-variant text-[18px]">expand_more</span>
-          </div>
+        <div class="relative">
+          <select [ngModel]="formatFilter()" (ngModelChange)="formatFilter.set($event)"
+                  class="w-full appearance-none bg-surface-container-low border border-outline-variant/30 rounded-lg text-body-sm font-body-sm px-4 py-2 pr-8 focus:border-primary focus:bg-white cursor-pointer outline-none transition-all">
+            <option value="">Todos los formatos</option>
+            <option value="PDF">PDF</option>
+            <option value="DOCX">Documentos</option>
+            <option value="ZIP">Comprimidos</option>
+            <option value="MP4">Video</option>
+          </select>
+          <span class="material-symbols-outlined absolute right-2 top-1/2 -translate-y-1/2 pointer-events-none text-on-surface-variant text-[18px]">expand_more</span>
+        </div>
+        <div class="relative">
+          <select [ngModel]="sortMode()" (ngModelChange)="sortMode.set($event)"
+                  class="w-full appearance-none bg-surface-container-low border border-outline-variant/30 rounded-lg text-body-sm font-body-sm px-4 py-2 pr-8 focus:border-primary focus:bg-white cursor-pointer outline-none transition-all">
+            <option value="recientes">Más recientes</option>
+            <option value="nombre">Nombre A-Z</option>
+          </select>
+          <span class="material-symbols-outlined absolute right-2 top-1/2 -translate-y-1/2 pointer-events-none text-on-surface-variant text-[18px]">expand_more</span>
         </div>
       </div>
 
       <!-- Files Grid -->
       <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-md">
-        @for (mat of filteredMateriales(); track mat.id) {
-          <div class="group relative bg-surface-container-lowest border border-outline-variant/20 rounded-xl p-md shadow-sm hover:shadow-md transition-all duration-300 overflow-hidden">
-            <!-- Actions overlay -->
-            <div class="absolute top-2 right-2 flex gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
-              @if (mat.url) {
-                <button type="button"
-                   class="w-8 h-8 flex items-center justify-center rounded-lg text-on-surface-variant hover:bg-primary/10 hover:text-primary transition-colors material-symbols-outlined text-[18px]"
-                   [class.animate-spin]="downloadingId() === mat.id"
-                   [disabled]="downloadingId() === mat.id"
-                   title="Descargar"
-                   (click)="downloadFile(mat)">{{ downloadingId() === mat.id ? 'progress_activity' : 'download' }}</button>
-              }
-              <button class="w-8 h-8 flex items-center justify-center rounded-lg text-on-surface-variant hover:bg-error/10 hover:text-error transition-colors material-symbols-outlined text-[18px]"
-                      (click)="confirmDelete(mat)" title="Eliminar">delete</button>
-            </div>
-
-            <div class="flex items-center justify-between mb-4">
-              <div [class]="'p-3 rounded-lg ' + mat.colorClase">
-                <span class="material-symbols-outlined text-3xl" style="font-variation-settings: 'FILL' 1;">{{ mat.icono }}</span>
+        @if (service.loading()) {
+          <!-- Skeleton Loader Cards -->
+          @for (i of [1, 2, 3, 4]; track i) {
+            <div class="bg-surface-container-lowest border border-outline-variant/20 rounded-xl p-md shadow-sm animate-pulse space-y-4">
+              <div class="flex items-center justify-between">
+                <div class="w-12 h-12 rounded-lg bg-on-surface/10"></div>
               </div>
+              <div class="h-4 bg-on-surface/10 rounded w-3/4"></div>
+              <div class="flex justify-between items-center mt-4 pt-2">
+                <div class="h-3 bg-on-surface/10 rounded w-16"></div>
+                <div class="h-5 bg-on-surface/10 rounded w-20"></div>
+              </div>
+              <div class="h-3.5 bg-on-surface/10 rounded w-12"></div>
             </div>
-            <h4 class="font-label-md text-label-md text-on-surface truncate pr-4" [title]="mat.nombre">{{ mat.nombre }}</h4>
-            <div class="flex justify-between items-center mt-4">
-              <span class="text-outline font-label-sm text-[10px] uppercase">{{ mat.fecha }}</span>
-              <span class="px-2 py-0.5 bg-tertiary-fixed text-on-tertiary-fixed-variant rounded text-[10px] font-bold">{{ mat.curso }}</span>
+          }
+        } @else {
+          @for (mat of filteredMateriales(); track mat.id) {
+            <div class="group relative bg-surface-container-lowest border border-outline-variant/20 rounded-xl p-md shadow-sm hover:shadow-md transition-all duration-300 overflow-hidden">
+              <!-- Actions overlay -->
+              <div class="absolute top-2 right-2 flex gap-1 opacity-100 md:opacity-0 md:group-hover:opacity-100 transition-opacity">
+                @if (mat.url) {
+                  <button type="button"
+                     class="w-8 h-8 flex items-center justify-center rounded-lg text-on-surface-variant bg-surface-container-lowest/80 border border-outline/10 hover:bg-primary/10 hover:text-primary transition-colors material-symbols-outlined text-[18px]"
+                     [class.animate-spin]="downloadingId() === mat.id"
+                     [disabled]="downloadingId() === mat.id"
+                     title="Descargar"
+                     (click)="downloadFile(mat)">{{ downloadingId() === mat.id ? 'progress_activity' : 'download' }}</button>
+                }
+                <button class="w-8 h-8 flex items-center justify-center rounded-lg text-on-surface-variant bg-surface-container-lowest/80 border border-outline/10 hover:bg-error/10 hover:text-error transition-colors material-symbols-outlined text-[18px]"
+                        (click)="confirmDelete(mat)" title="Eliminar">delete</button>
+              </div>
+
+              <div class="flex items-center justify-between mb-4">
+                <div [class]="'p-3 rounded-lg ' + mat.colorClase">
+                  <span class="material-symbols-outlined text-3xl" style="font-variation-settings: 'FILL' 1;">{{ mat.icono }}</span>
+                </div>
+              </div>
+              <h4 class="font-label-md text-label-md text-on-surface truncate pr-4" [title]="mat.nombre">{{ mat.nombre }}</h4>
+              <div class="flex justify-between items-center mt-4">
+                <span class="text-outline font-label-sm text-[10px] uppercase">{{ mat.fecha }}</span>
+                <span class="px-2 py-0.5 bg-tertiary-fixed text-on-tertiary-fixed-variant rounded text-[10px] font-bold">{{ mat.curso }}</span>
+              </div>
+              @if (mat.tamano) {
+                <p class="font-label-sm text-label-sm text-on-surface-variant mt-1">{{ mat.tamano }}</p>
+              }
             </div>
-            @if (mat.tamano) {
-              <p class="font-label-sm text-label-sm text-on-surface-variant mt-1">{{ mat.tamano }}</p>
-            }
-          </div>
-        } @empty {
-          <div class="col-span-full flex flex-col items-center justify-center py-xl gap-3 text-on-surface-variant">
-            <span class="material-symbols-outlined text-5xl opacity-30">folder_open</span>
-            <p class="font-body-md text-body-md">No se encontraron materiales</p>
-          </div>
+          } @empty {
+            <div class="col-span-full flex flex-col items-center justify-center py-xl gap-3 text-on-surface-variant">
+              <span class="material-symbols-outlined text-5xl opacity-30">folder_open</span>
+              <p class="font-body-md text-body-md">No se encontraron materiales</p>
+            </div>
+          }
         }
       </div>
     </div>
 
     <!-- Upload Modal -->
     <app-modal [isOpen]="showModal" (close)="closeModal()">
-      <div class="p-md bg-primary text-on-primary flex justify-between items-center">
-        <h3 class="font-headline-sm text-headline-sm">Subir nuevo material</h3>
-        <button class="material-symbols-outlined hover:rotate-90 transition-transform" (click)="closeModal()">close</button>
+      <div class="p-md border-b border-outline/10 flex justify-between items-center">
+        <h3 class="font-headline-sm text-headline-sm text-on-surface font-bold">Subir nuevo material</h3>
+        <button class="w-9 h-9 flex items-center justify-center rounded-lg text-on-surface-variant hover:bg-surface-container transition-colors"
+                (click)="closeModal()">
+          <span class="material-symbols-outlined">close</span>
+        </button>
       </div>
       <form class="p-md space-y-md" (ngSubmit)="onSubmit()">
 
@@ -129,7 +147,7 @@ const MAX_SIZE_MB = 50;
                  class="flex flex-col items-center justify-center gap-3 border-2 border-dashed rounded-xl p-lg cursor-pointer transition-colors"
                  [class]="selectedFile()
                    ? 'border-primary/50 bg-primary/5'
-                   : 'border-outline-variant hover:border-primary/40 hover:bg-surface-container'">
+                   : 'border-outline-variant hover:border-primary/40 hover:bg-surface-container-low'">
             @if (selectedFile(); as f) {
               <span class="material-symbols-outlined text-primary" style="font-size: 40px; font-variation-settings: 'FILL' 1;">task</span>
               <div class="text-center">
@@ -143,7 +161,7 @@ const MAX_SIZE_MB = 50;
               <span class="material-symbols-outlined text-on-surface-variant" style="font-size: 40px;">cloud_upload</span>
               <div class="text-center">
                 <p class="font-label-md text-label-md text-on-surface">Arrastrá o hacé clic para seleccionar</p>
-                <p class="font-label-sm text-label-sm text-on-surface-variant">PDF, DOCX, PPTX, ZIP, MP4, IMG · Máx. {{ maxSizeMb }} MB</p>
+                <p class="font-label-sm text-label-sm text-on-surface-variant text-center">PDF, DOCX, PPTX, ZIP, MP4, IMG · Máx. {{ maxSizeMb }} MB</p>
               </div>
             }
             <input id="docenteFileInput" type="file" class="hidden"
@@ -161,12 +179,15 @@ const MAX_SIZE_MB = 50;
         <!-- Categoría -->
         <div class="space-y-1">
           <label class="font-label-sm text-label-sm text-on-surface-variant block">Categoría / Etiqueta</label>
-          <select [(ngModel)]="formCategoria" name="formCategoria"
-                  class="w-full bg-surface-container border-none rounded-lg focus:ring-2 focus:ring-primary/20 outline-none p-3 text-body-md">
-            @for (cat of service.categorias(); track cat) {
-              <option [value]="cat">{{ cat }}</option>
-            }
-          </select>
+          <div class="relative">
+            <select [(ngModel)]="formCategoria" name="formCategoria"
+                    class="w-full bg-surface-container border border-outline-variant/30 rounded-lg focus:border-primary focus:bg-white outline-none p-3 text-body-md appearance-none">
+              @for (cat of service.categorias(); track cat) {
+                <option [value]="cat">{{ cat }}</option>
+              }
+            </select>
+            <span class="material-symbols-outlined absolute right-3 top-1/2 -translate-y-1/2 pointer-events-none text-on-surface-variant text-[18px]">expand_more</span>
+          </div>
         </div>
 
         <!-- Progress bar -->
@@ -183,12 +204,12 @@ const MAX_SIZE_MB = 50;
           </div>
         }
 
-        <div class="flex gap-base justify-end pt-md border-t border-outline/10">
+        <div class="flex flex-col-reverse sm:flex-row gap-2 justify-end pt-md border-t border-outline/10">
           <button type="button"
-                  class="border border-outline/20 px-md py-2.5 rounded-lg font-label-md text-label-md hover:bg-surface-container transition-colors"
+                  class="border border-outline/20 px-md py-2.5 rounded-lg font-label-md text-label-md hover:bg-surface-container transition-colors w-full sm:w-auto"
                   (click)="closeModal()" [disabled]="uploading()">Cancelar</button>
           <button type="submit"
-                  class="px-md py-2.5 rounded-lg font-label-md bg-primary text-on-primary shadow-md hover:bg-primary/90 transition-all flex items-center gap-2 disabled:opacity-60 disabled:cursor-not-allowed"
+                  class="px-md py-2.5 rounded-lg font-label-md bg-primary text-on-primary shadow-md hover:bg-primary/90 transition-all flex items-center justify-center gap-2 disabled:opacity-60 disabled:cursor-not-allowed w-full sm:w-auto"
                   [disabled]="uploading() || !selectedFile()">
             @if (uploading()) {
               <span class="material-symbols-outlined animate-spin" style="font-size: 18px;">progress_activity</span> Subiendo...
@@ -212,9 +233,9 @@ export class MaterialesComponent {
   readonly maxSizeMb = MAX_SIZE_MB;
   readonly acceptedMimeTypes = ACCEPTED_TYPES.join(',');
 
-  searchQuery = '';
-  formatFilter = '';
-  sortMode: SortMode = 'recientes';
+  searchQuery = signal('');
+  formatFilter = signal('');
+  sortMode = signal<SortMode>('recientes');
 
   showModal = false;
   formCategoria = 'TEORÍA';
@@ -227,19 +248,19 @@ export class MaterialesComponent {
 
   readonly filteredMateriales = computed(() => {
     let list = this.service.materiales();
-    const q = this.searchQuery.toLowerCase().trim();
+    const q = this.searchQuery().toLowerCase().trim();
 
     if (q) {
       list = list.filter(
-        (m) => m.nombre.toLowerCase().includes(q) || m.curso.toLowerCase().includes(q)
+        (m) => m.nombre.toLowerCase().includes(q) || (m.curso && m.curso.toLowerCase().includes(q))
       );
     }
 
-    if (this.formatFilter) {
-      list = list.filter((m) => m.tipo === this.formatFilter);
+    if (this.formatFilter()) {
+      list = list.filter((m) => m.tipo === this.formatFilter());
     }
 
-    if (this.sortMode === 'nombre') {
+    if (this.sortMode() === 'nombre') {
       list = [...list].sort((a, b) => a.nombre.localeCompare(b.nombre));
     } else {
       list = [...list].sort((a, b) =>

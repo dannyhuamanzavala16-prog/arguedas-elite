@@ -20,12 +20,9 @@
   transform: scale(0.95);
 }
 
-.mobile-link-active {
-  color: #000666;
-  font-weight: 700;
-  opacity: 1 !important;
-}
-
-.mobile-link-active .material-symbols-outlined {
-  font-variation-settings: 'FILL' 1;
+/* On touch devices, make table row actions always visible */
+@media (hover: none) and (pointer: coarse) {
+  .group .opacity-0 {
+    opacity: 1 !important;
+  }
 }

@@ -141,12 +141,12 @@ interface PerfilExtendido {
                  class="w-full bg-surface-container-low border border-outline-variant rounded-lg py-2.5 px-3 font-body-md text-body-md focus:border-primary focus:bg-white transition-all"
                  placeholder="15 de Marzo, 1985" />
         </div>
-        <div class="flex justify-end gap-2 pt-sm border-t border-outline/10">
+        <div class="flex flex-col-reverse sm:flex-row justify-end gap-2 pt-sm border-t border-outline/10">
           <button type="button"
-                  class="border border-outline/20 px-md py-2.5 rounded-lg font-label-md text-label-md hover:bg-surface-container transition-colors"
+                  class="border border-outline/20 px-md py-2.5 rounded-lg font-label-md text-label-md hover:bg-surface-container transition-colors w-full sm:w-auto"
                   (click)="showEditProfile = false">Cancelar</button>
           <button type="submit"
-                  class="bg-primary text-on-primary px-md py-2.5 rounded-lg font-label-md text-label-md hover:bg-primary/90 transition-colors flex items-center gap-2 disabled:opacity-60"
+                  class="bg-primary text-on-primary px-md py-2.5 rounded-lg font-label-md text-label-md hover:bg-primary/90 transition-colors flex items-center justify-center gap-2 disabled:opacity-60 w-full sm:w-auto"
                   [disabled]="epSaving()">
             @if (epSaving()) {
               <span class="material-symbols-outlined animate-spin" style="font-size:18px">progress_activity</span> Guardando...
@@ -208,12 +208,12 @@ interface PerfilExtendido {
             </button>
           </div>
         </div>
-        <div class="flex justify-end gap-2 pt-sm border-t border-outline/10">
+        <div class="flex flex-col-reverse sm:flex-row justify-end gap-2 pt-sm border-t border-outline/10">
           <button type="button"
-                  class="border border-outline/20 px-md py-2.5 rounded-lg font-label-md text-label-md hover:bg-surface-container transition-colors"
+                  class="border border-outline/20 px-md py-2.5 rounded-lg font-label-md text-label-md hover:bg-surface-container transition-colors w-full sm:w-auto"
                   (click)="showChangePassword = false">Cancelar</button>
           <button type="submit"
-                  class="bg-primary text-on-primary px-md py-2.5 rounded-lg font-label-md text-label-md hover:bg-primary/90 transition-colors flex items-center gap-2 disabled:opacity-60"
+                  class="bg-primary text-on-primary px-md py-2.5 rounded-lg font-label-md text-label-md hover:bg-primary/90 transition-colors flex items-center justify-center gap-2 disabled:opacity-60 w-full sm:w-auto"
                   [disabled]="cpSaving()">
             @if (cpSaving()) {
               <span class="material-symbols-outlined animate-spin" style="font-size:18px">progress_activity</span> Cambiando...

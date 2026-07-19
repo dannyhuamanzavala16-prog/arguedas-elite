@@ -2,7 +2,7 @@ import { Injectable, inject, signal } from '@angular/core';
 import { Firestore, doc, setDoc, docData } from '@angular/fire/firestore';
 import { toObservable } from '@angular/core/rxjs-interop';
 import { combineLatest } from 'rxjs';
-import { switchMap, map } from 'rxjs/operators';
+import { switchMap, map, tap } from 'rxjs/operators';
 import { EstudiantesService } from '../../admin/services/estudiantes.service';
 import { ASISTENCIA_CURSOS, ASISTENCIA_GRUPOS } from '../../shared/services/mock-data.service';
 
@@ -39,6 +39,9 @@ export class AsistenciaService {
   readonly curso = this._curso.asReadonly();
   readonly grupo = this._grupo.asReadonly();
 
+  private readonly _loading = signal(true);
+  readonly loading = this._loading.asReadonly();
+
   // Estado de sincronización en tiempo real
   private readonly _syncStatus = signal<'sincronizando' | 'guardado' | 'error'>('guardado');
   readonly syncStatus = this._syncStatus.asReadonly();
@@ -50,6 +53,7 @@ export class AsistenciaService {
       toObservable(this._grupo),
       toObservable(this.estudiantesService.estudiantes)
     ]).pipe(
+      tap(() => this._loading.set(true)),
       switchMap(([curso, grupo, allEsts]) => {
         const today = getTodayString();
         const docId = getDocId(today, curso, grupo);
@@ -70,8 +74,15 @@ export class AsistenciaService {
           })
         );
       })
-    ).subscribe((ests) => {
-      this._estudiantes.set(ests);
+    ).subscribe({
+      next: (ests) => {
+        this._estudiantes.set(ests);
+        this._loading.set(false);
+      },
+      error: (err) => {
+        console.error('Error loading attendance data:', err);
+        this._loading.set(false);
+      }
     });
   }
 

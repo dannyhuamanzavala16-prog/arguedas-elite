@@ -1,6 +1,7 @@
 import { Injectable, Injector, inject, runInInjectionContext, signal } from '@angular/core';
 import { toSignal } from '@angular/core/rxjs-interop';
 import { createClient, SupabaseClient } from '@supabase/supabase-js';
+import { tap } from 'rxjs/operators';
 import { Material } from '../../shared/models/material.model';
 import { FirestoreCollectionService } from '../../shared/services/firestore.service';
 import {
@@ -22,9 +23,17 @@ export class MaterialesDocenteService extends FirestoreCollectionService<Materia
   private readonly injector = inject(Injector);
   private readonly supabase: SupabaseClient = createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
 
+  private readonly _loading = signal(true);
+  readonly loading = this._loading.asReadonly();
+
   /** Lista reactiva en tiempo real desde Firestore */
   readonly materiales = runInInjectionContext(this.injector, () =>
-    toSignal(this.getAll(), { initialValue: [] as Material[] })
+    toSignal(
+      this.getAll().pipe(
+        tap(() => this._loading.set(false))
+      ),
+      { initialValue: [] as Material[] }
+    )
   );
 
   readonly categorias = signal<string[]>([...MATERIALES_DOCENTE_CATEGORIAS]);
