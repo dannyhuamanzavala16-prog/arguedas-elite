@@ -65,6 +65,7 @@ export const USUARIOS: Usuario[] = [
 // ─── ADMIN: ESTUDIANTES ───
 
 export const ESTUDIANTES_MOCK: Estudiante[] = [
+  { codigo: '#EA-2025-249', nombre: 'Juan Pérez', email: 'juan.perez@arguedas.edu.pe', salon: 'Aula 101 - A', carrera: 'Ingeniería de Sistemas', estado: 'Activo' },
   { codigo: '#EA-2024-001', nombre: 'Alejandra Mendoza', email: 'alejandra.m@elite.edu', salon: 'Aula 402 - B', carrera: 'Medicina Humana', estado: 'Activo' },
   { codigo: '#EA-2024-042', nombre: 'Ricardo Casas', email: 'ricardo.c@elite.edu', salon: 'Aula 105 - A', carrera: 'Ingeniería de Sistemas', estado: 'Activo' },
   { codigo: '#EA-2024-115', nombre: 'Lucía Paredes', email: 'lucia.p@elite.edu', salon: 'Aula 202 - C', carrera: 'Arquitectura', estado: 'Pendiente' },
