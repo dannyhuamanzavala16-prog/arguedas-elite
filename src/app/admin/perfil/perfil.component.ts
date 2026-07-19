@@ -116,12 +116,12 @@ import { ToastService } from '../../shared/components/toast/toast.service';
             <input type="email" [(ngModel)]="epEmail" name="epEmail" required
                    class="w-full bg-surface-container-low border border-outline-variant rounded-lg py-2.5 px-3 font-body-md text-body-md focus:border-primary focus:bg-white transition-all" />
           </div>
-          <div class="flex justify-end gap-2 pt-sm border-t border-outline/10">
+          <div class="flex flex-col-reverse sm:flex-row justify-end gap-2 pt-sm border-t border-outline/10">
             <button type="button"
                     class="border border-outline/20 px-md py-2.5 rounded-lg font-label-md text-label-md hover:bg-surface-container transition-colors"
                     (click)="showEditProfile = false">Cancelar</button>
             <button type="submit"
-                    class="bg-primary text-on-primary px-md py-2.5 rounded-lg font-label-md text-label-md hover:bg-primary/90 transition-colors flex items-center gap-2 disabled:opacity-60"
+                    class="bg-primary text-on-primary px-md py-2.5 rounded-lg font-label-md text-label-md hover:bg-primary/90 transition-colors flex items-center justify-center gap-2 disabled:opacity-60"
                     [disabled]="epSaving()">
               @if (epSaving()) {
                 <span class="material-symbols-outlined animate-spin" style="font-size:18px">progress_activity</span> Guardando...
@@ -190,12 +190,12 @@ import { ToastService } from '../../shared/components/toast/toast.service';
               Mínimo 8 caracteres
             </li>
           </ul>
-          <div class="flex justify-end gap-2 pt-sm border-t border-outline/10">
+          <div class="flex flex-col-reverse sm:flex-row justify-end gap-2 pt-sm border-t border-outline/10">
             <button type="button"
                     class="border border-outline/20 px-md py-2.5 rounded-lg font-label-md text-label-md hover:bg-surface-container transition-colors"
                     (click)="showChangePassword = false">Cancelar</button>
             <button type="submit"
-                    class="bg-primary text-on-primary px-md py-2.5 rounded-lg font-label-md text-label-md hover:bg-primary/90 transition-colors flex items-center gap-2 disabled:opacity-60"
+                    class="bg-primary text-on-primary px-md py-2.5 rounded-lg font-label-md text-label-md hover:bg-primary/90 transition-colors flex items-center justify-center gap-2 disabled:opacity-60"
                     [disabled]="cpSaving()">
               @if (cpSaving()) {
                 <span class="material-symbols-outlined animate-spin" style="font-size:18px">progress_activity</span> Cambiando...

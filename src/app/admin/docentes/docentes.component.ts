@@ -30,30 +30,30 @@ const ROWS_PER_PAGE = 7;
 
       <!-- Table Card -->
       <div class="bg-surface-container-lowest rounded-xl shadow-sm border border-outline/10 overflow-hidden">
-        <div class="p-md border-b border-outline/10 flex flex-col md:flex-row justify-between items-center gap-md">
-          <div>
-            <h3 class="font-headline-sm text-headline-sm text-on-surface">Listado de Docentes</h3>
-          </div>
-          <div class="flex items-center gap-sm">
-            <button class="flex items-center gap-2 border border-outline/20 px-sm py-1.5 rounded-lg text-label-md font-label-md hover:bg-surface-container transition-colors"
+        <!-- Toolbar -->
+        <div class="p-md border-b border-outline/10 flex flex-col sm:flex-row justify-between items-start sm:items-center gap-md">
+          <h3 class="font-headline-sm text-headline-sm text-on-surface">Listado de Docentes</h3>
+          <div class="flex items-center gap-sm w-full sm:w-auto">
+            <button class="flex-1 sm:flex-none flex items-center justify-center gap-2 border border-outline/20 px-sm py-1.5 rounded-lg text-label-md font-label-md hover:bg-surface-container transition-colors"
                     (click)="toggleFilters()">
               <span class="material-symbols-outlined text-[18px]">filter_list</span> Filtrar
             </button>
-            <button class="flex items-center gap-2 border border-outline/20 px-sm py-1.5 rounded-lg text-label-md font-label-md hover:bg-surface-container transition-colors">
+            <button class="flex-1 sm:flex-none flex items-center justify-center gap-2 border border-outline/20 px-sm py-1.5 rounded-lg text-label-md font-label-md hover:bg-surface-container transition-colors">
               <span class="material-symbols-outlined text-[18px]">download</span> Exportar
             </button>
           </div>
         </div>
 
+        <!-- Filter Panel -->
         @if (showFilters) {
           <div class="p-md bg-surface-container-low border-b border-outline/10">
-            <div class="flex flex-wrap items-end gap-md">
-              <div class="flex-1 min-w-[200px]">
+            <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-md">
+              <div>
                 <label class="font-label-sm text-label-sm text-on-surface-variant block mb-1">Buscar por nombre</label>
                 <input type="text" [(ngModel)]="filterNombre" placeholder="Escribe un nombre..."
                        class="w-full bg-surface-container-lowest border border-outline-variant rounded-lg py-2 px-3 font-body-md text-body-md focus:border-primary focus:bg-white transition-all" />
               </div>
-              <div class="flex-1 min-w-[160px]">
+              <div>
                 <label class="font-label-sm text-label-sm text-on-surface-variant block mb-1">Especialidad</label>
                 <select [(ngModel)]="filterEspecialidad"
                         class="w-full bg-surface-container-lowest border border-outline-variant rounded-lg py-2 px-3 font-body-md text-body-md focus:border-primary focus:bg-white transition-all">
@@ -61,7 +61,7 @@ const ROWS_PER_PAGE = 7;
                   @for (e of especialidades(); track e) { <option [value]="e">{{ e }}</option> }
                 </select>
               </div>
-              <div class="flex-1 min-w-[140px]">
+              <div>
                 <label class="font-label-sm text-label-sm text-on-surface-variant block mb-1">Estado</label>
                 <select [(ngModel)]="filterEstado"
                         class="w-full bg-surface-container-lowest border border-outline-variant rounded-lg py-2 px-3 font-body-md text-body-md focus:border-primary focus:bg-white transition-all">
@@ -70,17 +70,18 @@ const ROWS_PER_PAGE = 7;
                   <option value="Pendiente">Pendiente</option>
                 </select>
               </div>
-              <div class="flex items-center gap-2">
-                <button class="bg-primary text-on-primary px-md py-2 rounded-lg font-label-md text-label-md hover:bg-primary/90 transition-colors"
+              <div class="flex items-end gap-2">
+                <button class="flex-1 bg-primary text-on-primary px-md py-2 rounded-lg font-label-md text-label-md hover:bg-primary/90 transition-colors"
                         (click)="applyFilters()">Aplicar</button>
-                <button class="border border-outline/20 px-md py-2 rounded-lg font-label-md text-label-md hover:bg-surface-container transition-colors"
+                <button class="flex-1 border border-outline/20 px-md py-2 rounded-lg font-label-md text-label-md hover:bg-surface-container transition-colors"
                         (click)="clearFilters()">Limpiar</button>
               </div>
             </div>
           </div>
         }
 
-        <div class="overflow-x-auto">
+        <!-- Desktop Table (hidden on mobile) -->
+        <div class="hidden md:block overflow-x-auto">
           <table class="w-full text-left border-collapse">
             <thead>
               <tr class="bg-surface-container-low">
@@ -140,6 +141,68 @@ const ROWS_PER_PAGE = 7;
           </table>
         </div>
 
+        <!-- Mobile Cards (visible only on mobile) -->
+        <div class="md:hidden divide-y divide-outline/5">
+          @for (doc of paginated(); track doc.codigo; let i = $index) {
+            <div class="p-md space-y-sm">
+              <!-- Top row: avatar + name + actions -->
+              <div class="flex items-start justify-between gap-sm">
+                <div class="flex items-center gap-sm min-w-0">
+                  <div class="w-10 h-10 rounded-full {{ getAvatarColor(i) }} flex items-center justify-center font-bold text-xs shrink-0">
+                    {{ getInitials(doc.nombre) }}
+                  </div>
+                  <div class="min-w-0">
+                    <p class="font-label-md text-label-md text-on-surface truncate">{{ doc.nombre }}</p>
+                    <p class="font-body-sm text-body-sm text-on-surface-variant truncate">{{ doc.email }}</p>
+                  </div>
+                </div>
+                <div class="flex gap-1 shrink-0">
+                  <button class="w-9 h-9 flex items-center justify-center rounded-lg text-primary hover:bg-primary/10 transition-colors" (click)="openEditModal(doc)">
+                    <span class="material-symbols-outlined" style="font-size: 20px;">edit</span>
+                  </button>
+                  <button class="w-9 h-9 flex items-center justify-center rounded-lg text-error hover:bg-error/10 transition-colors" (click)="confirmDelete(doc.codigo)">
+                    <span class="material-symbols-outlined" style="font-size: 20px;">delete</span>
+                  </button>
+                </div>
+              </div>
+
+              <!-- Details grid -->
+              <div class="grid grid-cols-3 gap-xs text-body-sm pl-[52px]">
+                <div>
+                  <p class="font-label-sm text-label-sm text-on-surface-variant">Código</p>
+                  <p class="font-label-md text-label-md text-primary font-bold">{{ doc.codigo }}</p>
+                </div>
+                <div>
+                  <p class="font-label-sm text-label-sm text-on-surface-variant">Especialidad</p>
+                  <p class="font-body-sm text-body-sm text-on-surface truncate">{{ doc.especialidad }}</p>
+                </div>
+                <div class="flex flex-col items-start">
+                  <p class="font-label-sm text-label-sm text-on-surface-variant">Estado</p>
+                  <span class="px-sm py-0.5 rounded-full font-label-sm text-label-sm mt-0.5"
+                        [class.bg-green-100]="doc.estado === 'Activo'" [class.text-green-700]="doc.estado === 'Activo'"
+                        [class.bg-tertiary-fixed]="doc.estado === 'Pendiente'" [class.text-on-tertiary-fixed-variant]="doc.estado === 'Pendiente'">
+                    {{ doc.estado }}
+                  </span>
+                </div>
+              </div>
+              
+              <!-- Cursos -->
+              <div class="pl-[52px] space-y-1">
+                <p class="font-label-sm text-label-sm text-on-surface-variant">Cursos</p>
+                <div class="flex flex-wrap gap-1">
+                  @for (c of doc.cursos; track c) {
+                    <span class="px-xs py-[2px] bg-secondary-container text-on-secondary-container rounded text-label-sm font-label-sm">{{ c }}</span>
+                  } @empty {
+                    <span class="text-on-surface-variant italic text-body-sm">—</span>
+                  }
+                </div>
+              </div>
+            </div>
+          } @empty {
+            <div class="p-xl text-center text-on-surface-variant font-body-md text-body-md">No hay docentes registrados</div>
+          }
+        </div>
+
         <div class="p-md bg-surface-container-low flex flex-col sm:flex-row justify-between items-center gap-md">
           <span class="font-body-sm text-body-sm text-on-surface-variant">Mostrando {{ paginated().length }} de {{ totalItems() }} docentes</span>
           <app-pagination [totalItems]="totalItems()" [itemsPerPage]="7" [currentPage]="currentPage()" (pageChange)="onPageChange($event)" />
@@ -155,7 +218,7 @@ const ROWS_PER_PAGE = 7;
           </button>
         </div>
         <form class="p-md space-y-md" (ngSubmit)="onSubmit()">
-          <div class="grid grid-cols-1 md:grid-cols-2 gap-md">
+          <div class="grid grid-cols-1 sm:grid-cols-2 gap-md">
             <div class="space-y-1">
               <label class="font-label-sm text-label-sm text-on-surface-variant block">Nombre completo</label>
               <input type="text" [(ngModel)]="formNombre" name="nombre" required placeholder="Ej: Juan Pérez"
@@ -185,9 +248,9 @@ const ROWS_PER_PAGE = 7;
               </select>
             </div>
           </div>
-          <div class="flex justify-end gap-2 pt-sm border-t border-outline/10">
+          <div class="flex flex-col-reverse sm:flex-row justify-end gap-2 pt-sm border-t border-outline/10">
             <button type="button" class="border border-outline/20 px-md py-2.5 rounded-lg font-label-md text-label-md hover:bg-surface-container transition-colors" (click)="closeModal()">Cancelar</button>
-            <button type="submit" class="bg-primary text-on-primary px-md py-2.5 rounded-lg font-label-md text-label-md hover:bg-primary/90 transition-colors flex items-center gap-2">
+            <button type="submit" class="bg-primary text-on-primary px-md py-2.5 rounded-lg font-label-md text-label-md hover:bg-primary/90 transition-colors flex items-center justify-center gap-2">
               <span class="material-symbols-outlined" style="font-size: 18px;">save</span> {{ editandoCodigo ? 'Guardar' : 'Registrar' }}
             </button>
           </div>

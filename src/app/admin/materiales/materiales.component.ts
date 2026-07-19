@@ -44,8 +44,8 @@ const MAX_SIZE_MB = 50;
 
       <!-- Filters Bar -->
       <div class="bg-surface-container-lowest rounded-xl shadow-sm border border-outline/10 p-md mb-lg">
-        <div class="flex flex-wrap items-end gap-md">
-          <div class="flex-1 min-w-[200px]">
+        <div class="grid grid-cols-1 sm:grid-cols-3 items-end gap-md">
+          <div>
             <label class="font-label-sm text-label-sm text-on-surface-variant block mb-1">Curso</label>
             <select [(ngModel)]="filterCurso"
                     class="w-full bg-surface-container-lowest border border-outline-variant rounded-lg py-2 px-3 font-body-md text-body-md">
@@ -53,7 +53,7 @@ const MAX_SIZE_MB = 50;
               @for (c of cursos(); track c) { <option [value]="c">{{ c }}</option> }
             </select>
           </div>
-          <div class="flex-1 min-w-[160px]">
+          <div>
             <label class="font-label-sm text-label-sm text-on-surface-variant block mb-1">Tipo</label>
             <select [(ngModel)]="filterTipo"
                     class="w-full bg-surface-container-lowest border border-outline-variant rounded-lg py-2 px-3 font-body-md text-body-md">
@@ -62,9 +62,9 @@ const MAX_SIZE_MB = 50;
             </select>
           </div>
           <div class="flex items-center gap-2">
-            <button class="bg-primary text-on-primary px-md py-2 rounded-lg font-label-md text-label-md hover:bg-primary/90 transition-colors"
+            <button class="flex-1 bg-primary text-on-primary px-md py-2 rounded-lg font-label-md text-label-md hover:bg-primary/90 transition-colors"
                     (click)="applyFilters()">Aplicar</button>
-            <button class="border border-outline/20 px-md py-2 rounded-lg font-label-md text-label-md hover:bg-surface-container transition-colors"
+            <button class="flex-1 border border-outline/20 px-md py-2 rounded-lg font-label-md text-label-md hover:bg-surface-container transition-colors"
                     (click)="clearFilters()">Limpiar</button>
           </div>
         </div>
@@ -176,12 +176,12 @@ const MAX_SIZE_MB = 50;
             </div>
           }
 
-          <div class="flex justify-end gap-2 pt-sm border-t border-outline/10">
+          <div class="flex flex-col-reverse sm:flex-row justify-end gap-2 pt-sm border-t border-outline/10">
             <button type="button"
                     class="border border-outline/20 px-md py-2.5 rounded-lg font-label-md text-label-md hover:bg-surface-container transition-colors"
                     (click)="closeModal()" [disabled]="uploading()">Cancelar</button>
             <button type="submit"
-                    class="bg-primary text-on-primary px-md py-2.5 rounded-lg font-label-md text-label-md hover:bg-primary/90 transition-colors flex items-center gap-2 disabled:opacity-60 disabled:cursor-not-allowed"
+                    class="bg-primary text-on-primary px-md py-2.5 rounded-lg font-label-md text-label-md hover:bg-primary/90 transition-colors flex items-center justify-center gap-2 disabled:opacity-60 disabled:cursor-not-allowed"
                     [disabled]="uploading() || !selectedFile() || !formCurso">
               @if (uploading()) {
                 <span class="material-symbols-outlined animate-spin" style="font-size: 18px;">progress_activity</span> Subiendo...
