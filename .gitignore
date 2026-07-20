@@ -31,11 +31,14 @@ yarn-error.log
 
 # Environment files
 .env
+.env.local
+.env.*.local
 src/environments/environment.ts
 src/environments/environment.prod.ts
 
-# Firebase cache
+# Firebase
 .firebase/
+firebase-debug.log*
 
 # Miscellaneous
 /.angular/cache
