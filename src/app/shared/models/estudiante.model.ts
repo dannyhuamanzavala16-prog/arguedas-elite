@@ -9,4 +9,5 @@ export interface Estudiante {
   estado: 'Activo' | 'Pendiente';
   telefono?: string;
   telefonoApoderado?: string;
+  foto?: string;
 }

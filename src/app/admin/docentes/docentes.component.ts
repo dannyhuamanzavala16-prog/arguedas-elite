@@ -8,6 +8,7 @@ import { ModalComponent } from '../../shared/components/modal/modal.component';
 import { PaginationComponent } from '../../shared/components/pagination/pagination.component';
 import { ConfirmService } from '../../shared/components/confirm/confirm.service';
 import { ToastService } from '../../shared/components/toast/toast.service';
+import { FotoService } from '../../shared/services/foto.service';
 
 const AVATAR_COLORS = ['bg-primary-fixed', 'bg-tertiary-fixed', 'bg-outline-variant', 'bg-primary-fixed-dim', 'bg-secondary-container/20'];
 const ROWS_PER_PAGE = 7;
@@ -138,17 +139,21 @@ const ROWS_PER_PAGE = 7;
                 @for (doc of paginated(); track doc.codigo; let i = $index) {
                   <tr class="hover:bg-surface-container-low transition-colors group">
                     <td class="px-md py-md font-label-md text-label-md text-primary font-bold">{{ doc.codigo }}</td>
-                    <td class="px-md py-md">
-                      <div class="flex items-center gap-sm">
-                        <div class="w-8 h-8 rounded-full {{ getAvatarColor(i) }} flex items-center justify-center font-bold text-xs">
+                  <td class="px-md py-md">
+                    <div class="flex items-center gap-sm">
+                      @if (doc.foto) {
+                        <img [src]="doc.foto" alt="" class="w-8 h-8 rounded-full object-cover shrink-0 border border-outline/10" />
+                      } @else {
+                        <div class="w-8 h-8 rounded-full {{ getAvatarColor(i) }} flex items-center justify-center font-bold text-xs shrink-0">
                           {{ getInitials(doc.nombre) }}
                         </div>
-                        <div>
-                          <p class="font-label-md text-label-md text-on-surface">{{ doc.nombre }}</p>
-                        </div>
+                      }
+                      <div>
+                        <p class="font-label-md text-label-md text-on-surface">{{ doc.nombre }}</p>
                       </div>
-                    </td>
-                    <td class="px-md py-md font-body-md text-body-md">{{ doc.especialidad }}</td>
+                    </div>
+                  </td>
+                  <td class="px-md py-md font-body-md text-body-md">{{ doc.especialidad }}</td>
                     <td class="px-md py-md">
                       <div class="flex flex-wrap gap-1">
                         @for (c of doc.cursos; track c) {
@@ -187,9 +192,13 @@ const ROWS_PER_PAGE = 7;
               <div class="p-md space-y-sm">
                 <div class="flex items-start justify-between gap-sm">
                   <div class="flex items-center gap-sm min-w-0">
-                    <div class="w-10 h-10 rounded-full {{ getAvatarColor(i) }} flex items-center justify-center font-bold text-xs shrink-0">
-                      {{ getInitials(doc.nombre) }}
-                    </div>
+                    @if (doc.foto) {
+                      <img [src]="doc.foto" alt="" class="w-10 h-10 rounded-full object-cover shrink-0 border border-outline/10" />
+                    } @else {
+                      <div class="w-10 h-10 rounded-full {{ getAvatarColor(i) }} flex items-center justify-center font-bold text-xs shrink-0">
+                        {{ getInitials(doc.nombre) }}
+                      </div>
+                    }
                     <div class="min-w-0">
                       <p class="font-label-md text-label-md text-on-surface truncate">{{ doc.nombre }}</p>
                     </div>
@@ -275,6 +284,33 @@ const ROWS_PER_PAGE = 7;
             </div>
           }
 
+          <!-- Foto de perfil -->
+          <div class="space-y-1">
+            <label class="font-label-sm text-label-sm text-on-surface-variant block">Foto de perfil</label>
+            <div class="flex items-center gap-4">
+              @if (formFotoPreview(); as preview) {
+                <div class="w-16 h-16 rounded-full overflow-hidden border-2 border-outline/10 shrink-0">
+                  <img [src]="preview" class="w-full h-full object-cover" alt="Preview" />
+                </div>
+              } @else {
+                <div class="w-16 h-16 rounded-full bg-surface-container-low flex items-center justify-center text-on-surface-variant shrink-0 border-2 border-dashed border-outline-variant">
+                  <span class="material-symbols-outlined">person</span>
+                </div>
+              }
+              <label for="docenteFotoInput"
+                     class="cursor-pointer bg-surface-container-low border border-outline-variant rounded-lg py-2 px-4 font-label-sm text-label-sm text-on-surface-variant hover:bg-surface-container transition-colors">
+                {{ formFotoPreview() ? 'Cambiar foto' : 'Seleccionar foto' }}
+              </label>
+              @if (formFotoPreview()) {
+                <button type="button" class="font-label-sm text-label-sm text-error hover:underline" (click)="clearFoto()">
+                  Eliminar
+                </button>
+              }
+              <input id="docenteFotoInput" type="file" class="hidden" accept="image/jpeg,image/png,image/gif,image/webp"
+                     (change)="onFotoChange($event)" />
+            </div>
+          </div>
+
           <div class="grid grid-cols-1 sm:grid-cols-2 gap-md">
             <div class="space-y-1">
               <label class="font-label-sm text-label-sm text-on-surface-variant block">Especialidad</label>
@@ -310,6 +346,7 @@ export class DocentesComponent implements OnDestroy {
   private readonly service = inject(DocentesService);
   private readonly confirm = inject(ConfirmService);
   private readonly toast = inject(ToastService);
+  private readonly fotoService = inject(FotoService);
 
   protected readonly loading = signal(true);
   private readonly initSub: Subscription;
@@ -343,6 +380,9 @@ export class DocentesComponent implements OnDestroy {
   showModal = false;
   formCodigoPreview: string | null = null;
   formUsernamePreview: string | null = null;
+  formFoto = signal<File | null>(null);
+  formFotoPreview = signal<string | null>(null);
+  formFotoUrl = ''; // URL existente al editar
 
   currentPage = signal(1);
   readonly especialidades = computed(() => this.service.getEspecialidades());
@@ -397,6 +437,9 @@ export class DocentesComponent implements OnDestroy {
     const preview = this.service.previewNextCodigo();
     this.formCodigoPreview = preview.codigo;
     this.formUsernamePreview = preview.docId;
+    this.formFoto.set(null);
+    this.formFotoPreview.set(null);
+    this.formFotoUrl = '';
     this.showModal = true;
   }
 
@@ -404,39 +447,73 @@ export class DocentesComponent implements OnDestroy {
     this.editandoCodigo = doc.codigo;
     this.formNombre = doc.nombre; this.formEspecialidad = doc.especialidad;
     this.formCursos = doc.cursos.join(', '); this.formEstado = doc.estado;
+    this.formFoto.set(null);
+    this.formFotoPreview.set(null);
+    this.formFotoUrl = doc.foto ?? '';
     this.showModal = true;
   }
 
-  closeModal(): void { this.showModal = false; this.editandoCodigo = null; this.formCodigoPreview = null; this.formUsernamePreview = null; }
+  closeModal(): void { this.showModal = false; this.editandoCodigo = null; this.formCodigoPreview = null; this.formUsernamePreview = null; this.formFoto.set(null); this.formFotoPreview.set(null); this.formFotoUrl = ''; }
 
-  onSubmit(): void {
+  onFotoChange(event: Event): void {
+    const input = event.target as HTMLInputElement;
+    const file = input.files?.[0];
+    if (!file) return;
+    this.formFoto.set(file);
+    // Crear preview local
+    const reader = new FileReader();
+    reader.onload = () => this.formFotoPreview.set(reader.result as string);
+    reader.readAsDataURL(file);
+  }
+
+  clearFoto(): void {
+    this.formFoto.set(null);
+    this.formFotoPreview.set(null);
+    this.formFotoUrl = '';
+  }
+
+  async onSubmit(): Promise<void> {
     if (!this.formNombre || !this.formEspecialidad) return;
     const cursos = this.formCursos.split(',').map(c => c.trim()).filter(c => c);
     const confirmText = this.editandoCodigo ? 'Guardar cambios' : 'Registrar docente';
 
-    this.confirm.confirm({
-      title: confirmText,
-      desc: this.editandoCodigo ? 'Se actualizarán los datos de este docente.' : `Se registrará a "${this.formNombre}" en la especialidad de ${this.formEspecialidad}.`,
-      icon: 'save', iconBg: 'bg-primary-container/20', iconColor: 'text-primary',
-      confirmText: this.editandoCodigo ? 'Guardar' : 'Registrar',
-      confirmClass: 'bg-primary text-on-primary hover:bg-primary/90',
-    }).subscribe(async (ok) => {
-      if (!ok) return;
-      try {
-        if (this.editandoCodigo) {
-          await this.service.actualizar(this.editandoCodigo, { nombre: this.formNombre, especialidad: this.formEspecialidad, cursos, estado: this.formEstado });
-          this.toast.show('Docente actualizado correctamente', 'success');
-        } else {
-          const codigo = await this.service.crear({ nombre: this.formNombre, especialidad: this.formEspecialidad, cursos, estado: this.formEstado });
-          const user = codigo.replace('#', '');
-          this.toast.show(`✅ Docente registrado — Código: ${codigo} | Usuario y clave: ${user}`, 'success');
-        }
-        this.closeModal();
-      } catch (err) {
-        console.error('Error al guardar docente:', err);
-        this.toast.show('Error al guardar. Intente de nuevo.', 'error');
-      }
+    const confirmed = await new Promise<boolean>((resolve) => {
+      this.confirm.confirm({
+        title: confirmText,
+        desc: this.editandoCodigo ? 'Se actualizarán los datos de este docente.' : `Se registrará a "${this.formNombre}" en la especialidad de ${this.formEspecialidad}.`,
+        icon: 'save', iconBg: 'bg-primary-container/20', iconColor: 'text-primary',
+        confirmText: this.editandoCodigo ? 'Guardar' : 'Registrar',
+        confirmClass: 'bg-primary text-on-primary hover:bg-primary/90',
+      }).subscribe((ok) => resolve(ok));
     });
+    if (!confirmed) return;
+
+    try {
+      // Subir foto si hay una nueva
+      let fotoUrl = this.formFotoUrl;
+      const fotoFile = this.formFoto();
+      if (fotoFile) {
+        const docId = this.editandoCodigo?.replace('#', '') ?? this.formUsernamePreview!;
+        fotoUrl = await this.fotoService.subir(fotoFile, 'docentes', `${docId}.${fotoFile.name.split('.').pop()}`);
+        // Eliminar foto anterior si existe
+        if (this.formFotoUrl) {
+          await this.fotoService.eliminar(this.formFotoUrl).catch(() => {});
+        }
+      }
+
+      if (this.editandoCodigo) {
+        await this.service.actualizar(this.editandoCodigo, { nombre: this.formNombre, especialidad: this.formEspecialidad, cursos, estado: this.formEstado, foto: fotoUrl });
+        this.toast.show('Docente actualizado correctamente', 'success');
+      } else {
+        const codigo = await this.service.crear({ nombre: this.formNombre, especialidad: this.formEspecialidad, cursos, estado: this.formEstado, foto: fotoUrl });
+        const user = codigo.replace('#', '');
+        this.toast.show(`✅ Docente registrado — Código: ${codigo} | Usuario y clave: ${user}`, 'success');
+      }
+      this.closeModal();
+    } catch (err) {
+      console.error('Error al guardar docente:', err);
+      this.toast.show('Error al guardar. Intente de nuevo.', 'error');
+    }
   }
 
   confirmDelete(codigo: string): void {

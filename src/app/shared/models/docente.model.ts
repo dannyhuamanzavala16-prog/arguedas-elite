@@ -7,4 +7,5 @@ export interface Docente {
   especialidad: string;
   cursos: string[];
   estado: 'Activo' | 'Pendiente';
+  foto?: string;
 }

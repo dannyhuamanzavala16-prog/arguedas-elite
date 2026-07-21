@@ -8,6 +8,7 @@ import { ModalComponent } from '../../shared/components/modal/modal.component';
 import { PaginationComponent } from '../../shared/components/pagination/pagination.component';
 import { ConfirmService } from '../../shared/components/confirm/confirm.service';
 import { ToastService } from '../../shared/components/toast/toast.service';
+import { FotoService } from '../../shared/services/foto.service';
 
 const AVATAR_COLORS = [
   'bg-primary-fixed',
@@ -29,6 +30,7 @@ export class EstudiantesComponent implements OnDestroy {
   private readonly service = inject(EstudiantesService);
   private readonly confirm = inject(ConfirmService);
   private readonly toast = inject(ToastService);
+  private readonly fotoService = inject(FotoService);
 
   protected readonly loading = signal(true);
   private readonly initSub: Subscription;
@@ -68,6 +70,9 @@ export class EstudiantesComponent implements OnDestroy {
   /** Vista previa del código que se generará al registrar */
   formCodigoPreview: string | null = null;
   formUsernamePreview: string | null = null;
+  formFoto = signal<File | null>(null);
+  formFotoPreview = signal<string | null>(null);
+  formFotoUrl = '';
 
   // Pagination
   currentPage = signal(1);
@@ -148,6 +153,9 @@ export class EstudiantesComponent implements OnDestroy {
     this.formSalon = '';
     this.formCarrera = '';
     this.formEstado = 'Activo';
+    this.formFoto.set(null);
+    this.formFotoPreview.set(null);
+    this.formFotoUrl = '';
     this.actualizarPreview();
     this.showModal = true;
   }
@@ -165,6 +173,9 @@ export class EstudiantesComponent implements OnDestroy {
     this.formSalon = est.salon;
     this.formCarrera = est.carrera;
     this.formEstado = est.estado;
+    this.formFoto.set(null);
+    this.formFotoPreview.set(null);
+    this.formFotoUrl = est.foto ?? '';
     this.showModal = true;
   }
 
@@ -174,57 +185,91 @@ export class EstudiantesComponent implements OnDestroy {
     this.formCiclo = 'I';
     this.formCodigoPreview = null;
     this.formUsernamePreview = null;
+    this.formFoto.set(null);
+    this.formFotoPreview.set(null);
+    this.formFotoUrl = '';
   }
 
-  onSubmit(): void {
+  onFotoChange(event: Event): void {
+    const input = event.target as HTMLInputElement;
+    const file = input.files?.[0];
+    if (!file) return;
+    this.formFoto.set(file);
+    const reader = new FileReader();
+    reader.onload = () => this.formFotoPreview.set(reader.result as string);
+    reader.readAsDataURL(file);
+  }
+
+  clearFoto(): void {
+    this.formFoto.set(null);
+    this.formFotoPreview.set(null);
+    this.formFotoUrl = '';
+  }
+
+  async onSubmit(): Promise<void> {
     if (!this.formNombre || !this.formSalon || !this.formCarrera) return;
 
     const confirmText = this.editandoCodigo ? 'Guardar cambios' : 'Registrar estudiante';
-    this.confirm
-      .confirm({
-        title: confirmText,
-        desc: this.editandoCodigo
-          ? 'Se actualizarán los datos de este estudiante.'
-          : `Se registrará a "${this.formNombre}" en la carrera de ${this.formCarrera}.`,
-        icon: 'save',
-        iconBg: 'bg-primary-container/20',
-        iconColor: 'text-primary',
-        confirmText: this.editandoCodigo ? 'Guardar' : 'Registrar',
-        confirmClass: 'bg-primary text-on-primary hover:bg-primary/90',
-      })
-      .subscribe(async (ok) => {
-        if (!ok) return;
 
-        try {
-          if (this.editandoCodigo) {
-            await this.service.actualizar(this.editandoCodigo, {
-              nombre: this.formNombre,
-              salon: this.formSalon,
-              carrera: this.formCarrera,
-              estado: this.formEstado,
-            });
-            this.toast.show('Estudiante actualizado correctamente', 'success');
-          } else {
-            const codigo = await this.service.crear({
-              nombre: this.formNombre,
-              telefono: this.formTelefono,
-              telefonoApoderado: this.formTelefonoApoderado,
-              salon: this.formSalon,
-              carrera: this.formCarrera,
-              estado: this.formEstado,
-            }, this.formCiclo);
-            const user = codigo.replace('#', '');
-            this.toast.show(
-              `✅ Estudiante registrado — Código: ${codigo} | Usuario y clave: ${user}`,
-              'success'
-            );
-          }
-          this.closeModal();
-        } catch (err) {
-          console.error('Error al guardar:', err);
-          this.toast.show('Error al guardar. Intente de nuevo.', 'error');
+    const confirmed = await new Promise<boolean>((resolve) => {
+      this.confirm
+        .confirm({
+          title: confirmText,
+          desc: this.editandoCodigo
+            ? 'Se actualizarán los datos de este estudiante.'
+            : `Se registrará a "${this.formNombre}" en la carrera de ${this.formCarrera}.`,
+          icon: 'save',
+          iconBg: 'bg-primary-container/20',
+          iconColor: 'text-primary',
+          confirmText: this.editandoCodigo ? 'Guardar' : 'Registrar',
+          confirmClass: 'bg-primary text-on-primary hover:bg-primary/90',
+        })
+        .subscribe((ok) => resolve(ok));
+    });
+    if (!confirmed) return;
+
+    try {
+      // Subir foto si hay una nueva
+      let fotoUrl = this.formFotoUrl;
+      const fotoFile = this.formFoto();
+      if (fotoFile) {
+        const docId = this.editandoCodigo?.replace('#', '') ?? this.formUsernamePreview!;
+        fotoUrl = await this.fotoService.subir(fotoFile, 'estudiantes', `${docId}.${fotoFile.name.split('.').pop()}`);
+        if (this.formFotoUrl) {
+          await this.fotoService.eliminar(this.formFotoUrl).catch(() => {});
         }
-      });
+      }
+
+      if (this.editandoCodigo) {
+        await this.service.actualizar(this.editandoCodigo, {
+          nombre: this.formNombre,
+          salon: this.formSalon,
+          carrera: this.formCarrera,
+          estado: this.formEstado,
+          foto: fotoUrl,
+        });
+        this.toast.show('Estudiante actualizado correctamente', 'success');
+      } else {
+        const codigo = await this.service.crear({
+          nombre: this.formNombre,
+          telefono: this.formTelefono,
+          telefonoApoderado: this.formTelefonoApoderado,
+          salon: this.formSalon,
+          carrera: this.formCarrera,
+          estado: this.formEstado,
+          foto: fotoUrl,
+        }, this.formCiclo);
+        const user = codigo.replace('#', '');
+        this.toast.show(
+          `✅ Estudiante registrado — Código: ${codigo} | Usuario y clave: ${user}`,
+          'success'
+        );
+      }
+      this.closeModal();
+    } catch (err) {
+      console.error('Error al guardar:', err);
+      this.toast.show('Error al guardar. Intente de nuevo.', 'error');
+    }
   }
 
   // --- Delete ---

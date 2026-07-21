@@ -16,9 +16,15 @@ import { DashboardEstudianteService } from '../services/dashboard.service';
         </div>
         <div class="px-md pb-md -mt-16 text-center relative z-10">
           <div class="inline-block p-1 bg-surface-container-lowest rounded-full shadow-lg mb-sm">
-            <div class="w-32 h-32 rounded-full bg-primary-container flex items-center justify-center text-on-primary-container border-4 border-surface-container-lowest">
-              <span class="font-headline-lg text-headline-lg font-bold select-none">{{ initiales() }}</span>
-            </div>
+            @if (estudiante()?.foto) {
+              <div class="w-32 h-32 rounded-full overflow-hidden border-4 border-surface-container-lowest">
+                <img [src]="estudiante()?.foto" alt="Foto de perfil" class="w-full h-full object-cover" />
+              </div>
+            } @else {
+              <div class="w-32 h-32 rounded-full bg-primary-container flex items-center justify-center text-on-primary-container border-4 border-surface-container-lowest">
+                <span class="font-headline-lg text-headline-lg font-bold select-none">{{ initiales() }}</span>
+              </div>
+            }
           </div>
           <h2 class="font-headline-md text-headline-md text-primary">{{ usuario()?.nombre || 'Estudiante' }}</h2>
           <p class="font-body-md text-body-md text-on-surface-variant">{{ usuario()?.email }}</p>

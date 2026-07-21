@@ -3,12 +3,11 @@ import { FormsModule } from '@angular/forms';
 import {
   Auth,
   updatePassword,
-  updateProfile,
   reauthenticateWithCredential,
   EmailAuthProvider,
   User,
 } from '@angular/fire/auth';
-import { Firestore, doc, updateDoc, docData } from '@angular/fire/firestore';
+import { Firestore, doc, docData } from '@angular/fire/firestore';
 import { AuthService } from '../../auth/services/auth.service';
 import { ModalComponent } from '../../shared/components/modal/modal.component';
 import { ToastService } from '../../shared/components/toast/toast.service';
@@ -17,6 +16,7 @@ interface PerfilExtendido {
   telefono?: string;
   especializacion?: string;
   fechaNacimiento?: string;
+  foto?: string;
 }
 
 @Component({
@@ -29,9 +29,15 @@ interface PerfilExtendido {
       <div class="bg-surface-container-lowest rounded-xl shadow-sm border border-outline-variant/10 overflow-hidden">
         <div class="bg-primary h-24"></div>
         <div class="px-md pb-md -mt-12 flex flex-col items-center">
-          <div class="w-24 h-24 rounded-full bg-primary-container flex items-center justify-center text-on-primary-container border-4 border-surface-container-lowest shadow-lg">
-            <span class="font-headline-lg text-headline-lg font-bold select-none">{{ initiales() }}</span>
-          </div>
+          @if (perfilExt()?.foto) {
+            <div class="w-24 h-24 rounded-full overflow-hidden border-4 border-surface-container-lowest shadow-lg">
+              <img [src]="perfilExt()?.foto" alt="Foto de perfil" class="w-full h-full object-cover" />
+            </div>
+          } @else {
+            <div class="w-24 h-24 rounded-full bg-primary-container flex items-center justify-center text-on-primary-container border-4 border-surface-container-lowest shadow-lg">
+              <span class="font-headline-lg text-headline-lg font-bold select-none">{{ initiales() }}</span>
+            </div>
+          }
           <h2 class="font-headline-lg text-headline-lg text-center text-on-surface mt-sm">{{ usuario()?.nombre || 'Docente' }}</h2>
           <p class="font-body-md text-body-md text-center text-on-surface-variant">{{ usuario()?.email }}</p>
           <span class="mt-xs inline-flex items-center gap-1 bg-primary/10 text-primary rounded-full px-3 py-1 font-label-sm text-label-sm capitalize">
@@ -82,14 +88,6 @@ interface PerfilExtendido {
         <div class="bg-surface-container-lowest rounded-xl border border-outline-variant/10 p-md space-y-md">
           <h3 class="font-label-md text-label-md text-on-surface-variant uppercase tracking-wider">Acciones</h3>
           <button class="w-full flex items-center gap-3 p-sm border border-outline/20 rounded-lg hover:bg-surface-container-low transition-colors text-left"
-                  (click)="openEditProfile()">
-            <span class="material-symbols-outlined text-primary">edit</span>
-            <div>
-              <p class="font-label-md text-label-md text-on-surface">Editar Perfil</p>
-              <p class="font-body-sm text-body-sm text-on-surface-variant">Actualiza tus datos</p>
-            </div>
-          </button>
-          <button class="w-full flex items-center gap-3 p-sm border border-outline/20 rounded-lg hover:bg-surface-container-low transition-colors text-left"
                   (click)="openChangePassword()">
             <span class="material-symbols-outlined text-tertiary">lock</span>
             <div>
@@ -100,63 +98,6 @@ interface PerfilExtendido {
         </div>
       </div>
     </div>
-
-    <!-- Edit Profile Modal -->
-    <app-modal [isOpen]="showEditProfile" (close)="showEditProfile = false">
-      <div class="p-md border-b border-outline/10 flex justify-between items-center">
-        <h3 class="font-headline-sm text-headline-sm text-on-surface">Editar Perfil</h3>
-        <button class="w-9 h-9 flex items-center justify-center rounded-lg text-on-surface-variant hover:bg-surface-container transition-colors"
-                (click)="showEditProfile = false">
-          <span class="material-symbols-outlined">close</span>
-        </button>
-      </div>
-      <form class="p-md space-y-md" (ngSubmit)="handleEditProfile($event)">
-        @if (epFeedback()) {
-          <div class="text-body-sm font-body-sm text-center rounded-lg px-4 py-2"
-               [class.text-green-800]="epSuccess()" [class.bg-green-100]="epSuccess()"
-               [class.text-red-800]="!epSuccess()" [class.bg-red-100]="!epSuccess()">
-            {{ epFeedback() }}
-          </div>
-        }
-        <div class="space-y-1">
-          <label class="font-label-sm text-label-sm text-on-surface-variant block">Nombre completo</label>
-          <input type="text" [(ngModel)]="epNombre" name="epNombre" required
-                 class="w-full bg-surface-container-low border border-outline-variant rounded-lg py-2.5 px-3 font-body-md text-body-md focus:border-primary focus:bg-white transition-all" />
-        </div>
-        <div class="space-y-1">
-          <label class="font-label-sm text-label-sm text-on-surface-variant block">Teléfono de contacto</label>
-          <input type="tel" [(ngModel)]="epTelefono" name="epTelefono"
-                 class="w-full bg-surface-container-low border border-outline-variant rounded-lg py-2.5 px-3 font-body-md text-body-md focus:border-primary focus:bg-white transition-all"
-                 placeholder="+51 999 999 999" />
-        </div>
-        <div class="space-y-1">
-          <label class="font-label-sm text-label-sm text-on-surface-variant block">Especialización</label>
-          <input type="text" [(ngModel)]="epEspecializacion" name="epEspecializacion"
-                 class="w-full bg-surface-container-low border border-outline-variant rounded-lg py-2.5 px-3 font-body-md text-body-md focus:border-primary focus:bg-white transition-all"
-                 placeholder="Ej. Matemáticas Avanzadas" />
-        </div>
-        <div class="space-y-1">
-          <label class="font-label-sm text-label-sm text-on-surface-variant block">Fecha de Nacimiento</label>
-          <input type="text" [(ngModel)]="epFechaNacimiento" name="epFechaNacimiento"
-                 class="w-full bg-surface-container-low border border-outline-variant rounded-lg py-2.5 px-3 font-body-md text-body-md focus:border-primary focus:bg-white transition-all"
-                 placeholder="15 de Marzo, 1985" />
-        </div>
-        <div class="flex flex-col-reverse sm:flex-row justify-end gap-2 pt-sm border-t border-outline/10">
-          <button type="button"
-                  class="border border-outline/20 px-md py-2.5 rounded-lg font-label-md text-label-md hover:bg-surface-container transition-colors w-full sm:w-auto"
-                  (click)="showEditProfile = false">Cancelar</button>
-          <button type="submit"
-                  class="bg-primary text-on-primary px-md py-2.5 rounded-lg font-label-md text-label-md hover:bg-primary/90 transition-colors flex items-center justify-center gap-2 disabled:opacity-60 w-full sm:w-auto"
-                  [disabled]="epSaving()">
-            @if (epSaving()) {
-              <span class="material-symbols-outlined animate-spin" style="font-size:18px">progress_activity</span> Guardando...
-            } @else {
-              Guardar
-            }
-          </button>
-        </div>
-      </form>
-    </app-modal>
 
     <!-- Change Password Modal -->
     <app-modal [isOpen]="showChangePassword" (close)="showChangePassword = false">
@@ -244,16 +185,6 @@ export class PerfilComponent {
   private readonly _perfilExt = signal<PerfilExtendido | null>(null);
   readonly perfilExt = this._perfilExt.asReadonly();
 
-  // Edit profile
-  showEditProfile = false;
-  epNombre = '';
-  epTelefono = '';
-  epEspecializacion = '';
-  epFechaNacimiento = '';
-  epFeedback = signal('');
-  epSuccess = signal(false);
-  epSaving = signal(false);
-
   // Change password
   showChangePassword = false;
   cpCurrent = '';
@@ -278,20 +209,11 @@ export class PerfilComponent {
             telefono: data?.telefono ?? '',
             especializacion: data?.especializacion ?? '',
             fechaNacimiento: data?.fechaNacimiento ?? '',
+            foto: data?.foto ?? '',
           });
         });
       }
     });
-  }
-
-  openEditProfile(): void {
-    this.epNombre = this.usuario()?.nombre ?? '';
-    this.epTelefono = this._perfilExt()?.telefono ?? '';
-    this.epEspecializacion = this._perfilExt()?.especializacion ?? '';
-    this.epFechaNacimiento = this._perfilExt()?.fechaNacimiento ?? '';
-    this.epFeedback.set('');
-    this.epSuccess.set(false);
-    this.showEditProfile = true;
   }
 
   openChangePassword(): void {
@@ -301,53 +223,6 @@ export class PerfilComponent {
     this.cpFeedback.set('');
     this.cpSuccess.set(false);
     this.showChangePassword = true;
-  }
-
-  async handleEditProfile(event?: Event): Promise<void> {
-    if (event) {
-      event.preventDefault();
-      event.stopPropagation();
-    }
-    if (!this.epNombre.trim()) {
-      this.epFeedback.set('El nombre no puede estar vacío.');
-      this.epSuccess.set(false);
-      return;
-    }
-
-    const currentUser: User | null = this.auth.currentUser;
-    if (!currentUser) {
-      this.epFeedback.set('Sesión expirada. Volvé a iniciar sesión.');
-      this.epSuccess.set(false);
-      return;
-    }
-
-    this.epSaving.set(true);
-    this.authService.markProfileUpdate();
-    try {
-      // 1. Actualizar displayName en Firebase Auth
-      await updateProfile(currentUser, { displayName: this.epNombre.trim() });
-
-      // 2. Actualizar en Firestore: nombre + campos extendidos del docente
-      const userDocRef = doc(this.firestore, `usuarios/${currentUser.uid}`);
-      await updateDoc(userDocRef, {
-        nombre: this.epNombre.trim(),
-        telefono: this.epTelefono.trim(),
-        especializacion: this.epEspecializacion.trim(),
-        fechaNacimiento: this.epFechaNacimiento.trim(),
-      });
-
-      this.epFeedback.set('Perfil actualizado correctamente.');
-      this.epSuccess.set(true);
-      this.toast.show('Perfil actualizado', 'success');
-      setTimeout(() => { this.showEditProfile = false; this.epFeedback.set(''); }, 1200);
-    } catch (err: any) {
-      console.error(err);
-      this.epFeedback.set('Error al actualizar el perfil. Intentá de nuevo.');
-      this.epSuccess.set(false);
-    } finally {
-      this.epSaving.set(false);
-      // El flag _ignoringNextNull se limpia solo vía timeout en markProfileUpdate()
-    }
   }
 
   async handleChangePassword(event?: Event): Promise<void> {

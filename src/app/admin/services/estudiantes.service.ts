@@ -1,7 +1,7 @@
 import { Injectable, inject } from '@angular/core';
 import { toSignal } from '@angular/core/rxjs-interop';
 import { Auth, createUserWithEmailAndPassword } from '@angular/fire/auth';
-import { doc, setDoc } from '@angular/fire/firestore';
+import { collection, doc, getDocs, query, setDoc, updateDoc, where } from '@angular/fire/firestore';
 import { Estudiante } from '../../shared/models/estudiante.model';
 import { FirestoreCollectionService } from '../../shared/services/firestore.service';
 
@@ -67,6 +67,7 @@ export class EstudiantesService extends FirestoreCollectionService<Estudiante> {
       role: 'estudiante' as const,
       nombre: est.nombre,
       email,
+      foto: est.foto ?? '',
     });
 
     // 3. Crear documento en estudiantes/{docId}
@@ -76,6 +77,7 @@ export class EstudiantesService extends FirestoreCollectionService<Estudiante> {
       salon: est.salon,
       carrera: est.carrera,
       estado: est.estado,
+      foto: est.foto ?? '',
       telefono: est.telefono ?? '',
       telefonoApoderado: est.telefonoApoderado ?? '',
       codigo,
@@ -86,7 +88,14 @@ export class EstudiantesService extends FirestoreCollectionService<Estudiante> {
   }
 
   async actualizar(codigo: string, cambios: Partial<Estudiante>): Promise<void> {
-    await this.update(codigo.replace('#', ''), cambios);
+    const docId = codigo.replace('#', '');
+    await this.update(docId, cambios);
+
+    if (cambios.foto !== undefined) {
+      const q = query(collection(this.firestore, 'usuarios'), where('username', '==', docId));
+      const snapshot = await getDocs(q);
+      snapshot.forEach((d) => updateDoc(doc(this.firestore, `usuarios/${d.id}`), { foto: cambios.foto }));
+    }
   }
 
   async eliminar(codigo: string): Promise<void> {
