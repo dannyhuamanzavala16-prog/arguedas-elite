@@ -27,6 +27,7 @@ export class AdminLayoutComponent {
     { path: '/administrador/estudiantes', icon: 'school', label: 'Estudiantes' },
     { path: '/administrador/docentes', icon: 'group', label: 'Docentes' },
     { path: '/administrador/materiales', icon: 'book', label: 'Materiales' },
+    { path: '/administrador/asistencia', icon: 'calendar_today', label: 'Asistencia' },
     { path: '/administrador/perfil', icon: 'person', label: 'Perfil' },
   ];
 

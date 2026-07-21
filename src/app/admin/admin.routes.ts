@@ -30,6 +30,11 @@ export const adminRoutes: Routes = [
           import('./materiales/materiales.component').then((m) => m.MaterialesComponent),
       },
       {
+        path: 'asistencia',
+        loadComponent: () =>
+          import('./asistencia/asistencia.component').then((m) => m.AdminAsistenciaComponent),
+      },
+      {
         path: 'perfil',
         loadComponent: () =>
           import('./perfil/perfil.component').then((m) => m.PerfilComponent),
