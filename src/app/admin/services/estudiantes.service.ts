@@ -28,8 +28,9 @@ export class EstudiantesService extends FirestoreCollectionService<Estudiante> {
     if (delCiclo.length > 0) {
       const numbers = delCiclo
         .map((e) => {
-          const numPart = e.codigo.replace(`#${prefix}`, '');
-          return parseInt(numPart, 10);
+          // Extrae el número final, sea formato #AEI0001 o #AEII001
+          const match = e.codigo.match(/(\d+)$/);
+          return match ? parseInt(match[1], 10) : NaN;
         })
         .filter((num) => !isNaN(num));
       if (numbers.length > 0) {
@@ -75,6 +76,8 @@ export class EstudiantesService extends FirestoreCollectionService<Estudiante> {
       salon: est.salon,
       carrera: est.carrera,
       estado: est.estado,
+      telefono: est.telefono ?? '',
+      telefonoApoderado: est.telefonoApoderado ?? '',
       codigo,
       createdAt: new Date().toISOString(),
     });

@@ -1,5 +1,7 @@
-import { Component, computed, inject, signal } from '@angular/core';
+import { Component, computed, inject, signal, OnDestroy } from '@angular/core';
 import { FormsModule } from '@angular/forms';
+import { combineLatest, Subscription } from 'rxjs';
+import { take } from 'rxjs/operators';
 import { EstudiantesService } from '../services/estudiantes.service';
 import { Estudiante } from '../../shared/models/estudiante.model';
 import { ModalComponent } from '../../shared/components/modal/modal.component';
@@ -23,10 +25,26 @@ const ROWS_PER_PAGE = 7;
   imports: [FormsModule, ModalComponent, PaginationComponent],
   templateUrl: './estudiantes.component.html',
 })
-export class EstudiantesComponent {
+export class EstudiantesComponent implements OnDestroy {
   private readonly service = inject(EstudiantesService);
   private readonly confirm = inject(ConfirmService);
   private readonly toast = inject(ToastService);
+
+  protected readonly loading = signal(true);
+  private readonly initSub: Subscription;
+
+  constructor() {
+    this.initSub = combineLatest([
+      this.service.getAll(),
+    ]).pipe(take(1)).subscribe({
+      next: () => this.loading.set(false),
+      error: () => this.loading.set(false),
+    });
+  }
+
+  ngOnDestroy(): void {
+    this.initSub.unsubscribe();
+  }
 
   // Search & filters
   filterNombre = '';
@@ -40,6 +58,8 @@ export class EstudiantesComponent {
   // Form
   formNombre = '';
   formCiclo: 'I' | 'II' = 'I';
+  formTelefono = '';
+  formTelefonoApoderado = '';
   formSalon = '';
   formCarrera = '';
   formEstado: 'Activo' | 'Pendiente' = 'Activo';
@@ -123,6 +143,8 @@ export class EstudiantesComponent {
     this.editandoCodigo = null;
     this.formNombre = '';
     this.formCiclo = 'I';
+    this.formTelefono = '';
+    this.formTelefonoApoderado = '';
     this.formSalon = '';
     this.formCarrera = '';
     this.formEstado = 'Activo';
@@ -185,6 +207,8 @@ export class EstudiantesComponent {
           } else {
             const codigo = await this.service.crear({
               nombre: this.formNombre,
+              telefono: this.formTelefono,
+              telefonoApoderado: this.formTelefonoApoderado,
               salon: this.formSalon,
               carrera: this.formCarrera,
               estado: this.formEstado,

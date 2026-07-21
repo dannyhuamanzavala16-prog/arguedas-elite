@@ -1,5 +1,7 @@
-import { Component, computed, inject, signal } from '@angular/core';
+import { Component, computed, inject, signal, OnDestroy } from '@angular/core';
 import { FormsModule } from '@angular/forms';
+import { combineLatest, Subscription } from 'rxjs';
+import { take } from 'rxjs/operators';
 import { MaterialesService } from '../services/materiales.service';
 import { Material } from '../../shared/models/material.model';
 import { ModalComponent } from '../../shared/components/modal/modal.component';
@@ -70,36 +72,57 @@ const MAX_SIZE_MB = 50;
         </div>
       </div>
 
-      <!-- Grid -->
-      <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-gutter">
-        @for (mat of paginated(); track mat.id) {
-          <div class="group bg-surface-container-lowest rounded-xl p-md border border-outline/10 shadow-sm hover:shadow-md transition-all relative overflow-hidden">
-            <div class="absolute top-0 right-0 p-2 opacity-100 md:opacity-0 md:group-hover:opacity-100 transition-opacity flex gap-1">
-              @if (mat.url) {
-                <button type="button"
-                   class="w-9 h-9 flex items-center justify-center rounded-lg text-on-surface-variant hover:bg-primary/10 hover:text-primary transition-colors material-symbols-outlined"
-                   [class.animate-spin]="downloadingId() === mat.id"
-                   [disabled]="downloadingId() === mat.id"
-                   title="Descargar"
-                   (click)="downloadFile(mat)">{{ downloadingId() === mat.id ? 'progress_activity' : 'download' }}</button>
-              }
-              <button class="w-9 h-9 flex items-center justify-center rounded-lg text-on-surface-variant hover:bg-error/10 hover:text-error transition-colors material-symbols-outlined"
-                      (click)="confirmDelete(mat.id, mat.storagePath)" title="Eliminar">delete</button>
+      @if (loading()) {
+        <!-- Skeleton Loading -->
+        <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-gutter animate-pulse">
+          @for (row of [1,2,3,4,5,6]; track row) {
+            <div class="bg-surface-container-lowest rounded-xl p-md border border-outline/10">
+              <div class="flex gap-sm items-start">
+                <div class="w-12 h-12 rounded-lg bg-on-surface/10 shrink-0"></div>
+                <div class="flex-1 space-y-2">
+                  <div class="h-4 bg-on-surface/10 rounded w-3/4"></div>
+                  <div class="h-3 bg-on-surface/10 rounded w-1/2"></div>
+                </div>
+              </div>
+              <div class="mt-md pt-md border-t border-outline/10 flex justify-between">
+                <div class="h-3 bg-on-surface/10 rounded w-16"></div>
+                <div class="h-3 bg-on-surface/10 rounded w-20"></div>
+              </div>
             </div>
-            <div class="w-12 h-12 rounded-lg {{ mat.colorClase }} flex items-center justify-center mb-md">
-              <span class="material-symbols-outlined" style="font-variation-settings: 'FILL' 1;">{{ mat.icono }}</span>
+          }
+        </div>
+      } @else {
+        <!-- Grid -->
+        <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-gutter">
+          @for (mat of paginated(); track mat.id) {
+            <div class="group bg-surface-container-lowest rounded-xl p-md border border-outline/10 shadow-sm hover:shadow-md transition-all relative overflow-hidden">
+              <div class="absolute top-0 right-0 p-2 opacity-100 md:opacity-0 md:group-hover:opacity-100 transition-opacity flex gap-1">
+                @if (mat.url) {
+                  <button type="button"
+                     class="w-9 h-9 flex items-center justify-center rounded-lg text-on-surface-variant hover:bg-primary/10 hover:text-primary transition-colors material-symbols-outlined"
+                     [class.animate-spin]="downloadingId() === mat.id"
+                     [disabled]="downloadingId() === mat.id"
+                     title="Descargar"
+                     (click)="downloadFile(mat)">{{ downloadingId() === mat.id ? 'progress_activity' : 'download' }}</button>
+                }
+                <button class="w-9 h-9 flex items-center justify-center rounded-lg text-on-surface-variant hover:bg-error/10 hover:text-error transition-colors material-symbols-outlined"
+                        (click)="confirmDelete(mat.id, mat.storagePath)" title="Eliminar">delete</button>
+              </div>
+              <div class="w-12 h-12 rounded-lg {{ mat.colorClase }} flex items-center justify-center mb-md">
+                <span class="material-symbols-outlined" style="font-variation-settings: 'FILL' 1;">{{ mat.icono }}</span>
+              </div>
+              <h4 class="font-label-md text-label-md text-on-surface truncate" [title]="mat.nombre">{{ mat.nombre }}</h4>
+              <p class="font-label-sm text-label-sm text-on-surface-variant mt-xs">Curso: {{ mat.curso }}</p>
+              <div class="mt-md flex justify-between items-center pt-md border-t border-outline/10">
+                <span class="font-label-sm text-label-sm text-outline">{{ mat.tamano }}</span>
+                <span class="font-label-sm text-label-sm text-outline">{{ mat.fecha }}</span>
+              </div>
             </div>
-            <h4 class="font-label-md text-label-md text-on-surface truncate" [title]="mat.nombre">{{ mat.nombre }}</h4>
-            <p class="font-label-sm text-label-sm text-on-surface-variant mt-xs">Curso: {{ mat.curso }}</p>
-            <div class="mt-md flex justify-between items-center pt-md border-t border-outline/10">
-              <span class="font-label-sm text-label-sm text-outline">{{ mat.tamano }}</span>
-              <span class="font-label-sm text-label-sm text-outline">{{ mat.fecha }}</span>
-            </div>
-          </div>
-        } @empty {
-          <div class="col-span-full text-center py-xl text-on-surface-variant font-body-md text-body-md">No hay materiales disponibles</div>
-        }
-      </div>
+          } @empty {
+            <div class="col-span-full text-center py-xl text-on-surface-variant font-body-md text-body-md">No hay materiales disponibles</div>
+          }
+        </div>
+      }
 
       <!-- Pagination -->
       <div class="mt-lg flex justify-center">
@@ -195,10 +218,26 @@ const MAX_SIZE_MB = 50;
     </div>
   `,
 })
-export class MaterialesComponent {
+export class MaterialesComponent implements OnDestroy {
   private readonly service = inject(MaterialesService);
   private readonly confirm = inject(ConfirmService);
   private readonly toast = inject(ToastService);
+  private readonly initSub: Subscription;
+
+  protected readonly loading = signal(true);
+
+  constructor() {
+    this.initSub = combineLatest([
+      this.service.getAll(),
+    ]).pipe(take(1)).subscribe({
+      next: () => this.loading.set(false),
+      error: () => this.loading.set(false),
+    });
+  }
+
+  ngOnDestroy(): void {
+    this.initSub.unsubscribe();
+  }
 
   readonly maxSizeMb = MAX_SIZE_MB;
   readonly acceptedMimeTypes = ACCEPTED_TYPES.join(',');
