@@ -2,6 +2,7 @@ import { Component, computed, inject, signal, OnDestroy } from '@angular/core';
 import { FormsModule } from '@angular/forms';
 import { combineLatest, Subscription } from 'rxjs';
 import { take } from 'rxjs/operators';
+import { Firestore, collection, collectionData, query } from '@angular/fire/firestore';
 import { EstudiantesService } from '../services/estudiantes.service';
 import { Estudiante } from '../../shared/models/estudiante.model';
 import { ModalComponent } from '../../shared/components/modal/modal.component';
@@ -31,6 +32,7 @@ export class EstudiantesComponent implements OnDestroy {
   private readonly confirm = inject(ConfirmService);
   private readonly toast = inject(ToastService);
   private readonly fotoService = inject(FotoService);
+  private readonly firestore = inject(Firestore);
 
   protected readonly loading = signal(true);
   private readonly initSub: Subscription;
@@ -41,6 +43,23 @@ export class EstudiantesComponent implements OnDestroy {
     ]).pipe(take(1)).subscribe({
       next: () => this.loading.set(false),
       error: () => this.loading.set(false),
+    });
+
+    // Escuchar asistencias para calcular % de inasistencias por estudiante
+    collectionData(query(collection(this.firestore, 'asistencias'))).subscribe((data: any[]) => {
+      const conteo: Record<string, { total: number; ausentes: number }> = {};
+      for (const sesion of data) {
+        for (const est of sesion.estudiantes ?? []) {
+          if (!conteo[est.id]) conteo[est.id] = { total: 0, ausentes: 0 };
+          conteo[est.id].total++;
+          if (!est.presente) conteo[est.id].ausentes++;
+        }
+      }
+      const result: Record<string, number> = {};
+      for (const [id, c] of Object.entries(conteo)) {
+        result[id] = c.total > 0 ? Math.round((c.ausentes / c.total) * 100) : 0;
+      }
+      this.inasistencias.set(result);
     });
   }
 
@@ -74,6 +93,9 @@ export class EstudiantesComponent implements OnDestroy {
   formFotoPreview = signal<string | null>(null);
   formFotoUrl = '';
 
+  // Inasistencias
+  private readonly inasistencias = signal<Record<string, number>>({});
+
   // Pagination
   currentPage = signal(1);
 
@@ -97,6 +119,10 @@ export class EstudiantesComponent implements OnDestroy {
   });
 
   readonly totalItems = computed(() => this.filtered().length);
+
+  getInasistencia(codigo: string): number {
+    return this.inasistencias()[codigo] ?? 0;
+  }
 
   getAvatarColor(index: number): string {
     return AVATAR_COLORS[index % AVATAR_COLORS.length];

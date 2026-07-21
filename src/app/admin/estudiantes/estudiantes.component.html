@@ -137,6 +137,9 @@
               <th class="px-md py-sm font-label-sm text-label-sm text-on-surface-variant uppercase tracking-wider">Estudiante</th>
               <th class="px-md py-sm font-label-sm text-label-sm text-on-surface-variant uppercase tracking-wider">Salón</th>
               <th class="px-md py-sm font-label-sm text-label-sm text-on-surface-variant uppercase tracking-wider">Carrera</th>
+              <th class="px-md py-sm font-label-sm text-label-sm text-on-surface-variant uppercase tracking-wider">Teléfono</th>
+              <th class="px-md py-sm font-label-sm text-label-sm text-on-surface-variant uppercase tracking-wider">Tel. Apoderado</th>
+              <th class="px-md py-sm font-label-sm text-label-sm text-on-surface-variant uppercase tracking-wider">% Inasist.</th>
               <th class="px-md py-sm font-label-sm text-label-sm text-on-surface-variant uppercase tracking-wider">Estado</th>
               <th class="px-md py-sm font-label-sm text-label-sm text-on-surface-variant uppercase tracking-wider text-right">Acciones</th>
             </tr>
@@ -163,6 +166,16 @@
                 </td>
                 <td class="px-md py-md font-body-md text-body-md">{{ est.salon }}</td>
                 <td class="px-md py-md font-body-md text-body-md">{{ est.carrera }}</td>
+                <td class="px-md py-md font-body-md text-body-md">{{ est.telefono || '—' }}</td>
+                <td class="px-md py-md font-body-md text-body-md">{{ est.telefonoApoderado || '—' }}</td>
+                <td class="px-md py-md">
+                  <span class="font-label-md text-label-md"
+                        [class.text-green-700]="getInasistencia(est.codigo) <= 20"
+                        [class.text-yellow-600]="getInasistencia(est.codigo) > 20 && getInasistencia(est.codigo) <= 40"
+                        [class.text-red-600]="getInasistencia(est.codigo) > 40">
+                    {{ getInasistencia(est.codigo) }}%
+                  </span>
+                </td>
                 <td class="px-md py-md">
                   <span
                     class="px-sm py-1 rounded-full font-label-sm text-label-sm"
@@ -195,7 +208,7 @@
               </tr>
             } @empty {
               <tr>
-                <td colspan="6" class="text-center py-xl text-on-surface-variant font-body-md text-body-md">
+                <td colspan="9" class="text-center py-xl text-on-surface-variant font-body-md text-body-md">
                   No hay estudiantes registrados
                 </td>
               </tr>
@@ -238,19 +251,40 @@
                 </button>
               </div>
             </div>
-            <div class="grid grid-cols-3 gap-xs text-body-sm pl-[52px]">
+            <div class="grid grid-cols-2 gap-x-md gap-y-1 text-body-sm pl-[52px]">
               <div>
                 <p class="font-label-sm text-label-sm text-on-surface-variant">Código</p>
                 <p class="font-label-md text-label-md text-primary font-bold">{{ est.codigo }}</p>
               </div>
               <div>
-                <p class="font-label-sm text-label-sm text-on-surface-variant">Salón</p>
-                <p class="font-body-md text-body-sm text-on-surface">{{ est.salon }}</p>
+                <p class="font-label-sm text-label-sm text-on-surface-variant">% Inasist.</p>
+                <p class="font-label-md text-label-md"
+                   [class.text-green-700]="getInasistencia(est.codigo) <= 20"
+                   [class.text-yellow-600]="getInasistencia(est.codigo) > 20 && getInasistencia(est.codigo) <= 40"
+                   [class.text-red-600]="getInasistencia(est.codigo) > 40">
+                  {{ getInasistencia(est.codigo) }}%
+                </p>
               </div>
-              <div class="flex flex-col items-start">
-                <p class="font-label-sm text-label-sm text-on-surface-variant">Estado</p>
+              <div>
+                <p class="font-label-sm text-label-sm text-on-surface-variant">Teléfono</p>
+                <p class="font-body-sm text-body-sm text-on-surface">{{ est.telefono || '—' }}</p>
+              </div>
+              <div>
+                <p class="font-label-sm text-label-sm text-on-surface-variant">Tel. Apoderado</p>
+                <p class="font-body-sm text-body-sm text-on-surface">{{ est.telefonoApoderado || '—' }}</p>
+              </div>
+              <div>
+                <p class="font-label-sm text-label-sm text-on-surface-variant">Salón</p>
+                <p class="font-body-sm text-body-sm text-on-surface">{{ est.salon }}</p>
+              </div>
+              <div>
+                <p class="font-label-sm text-label-sm text-on-surface-variant">Carrera</p>
+                <p class="font-body-sm text-body-sm text-on-surface">{{ est.carrera }}</p>
+              </div>
+              <div class="col-span-2 flex items-center gap-2">
+                <p class="font-label-sm text-label-sm text-on-surface-variant">Estado:</p>
                 <span
-                  class="px-sm py-0.5 rounded-full font-label-sm text-label-sm mt-0.5"
+                  class="px-sm py-0.5 rounded-full font-label-sm text-label-sm"
                   [class.bg-green-100]="est.estado === 'Activo'"
                   [class.text-green-700]="est.estado === 'Activo'"
                   [class.bg-tertiary-fixed]="est.estado === 'Pendiente'"
@@ -259,10 +293,6 @@
                   {{ est.estado }}
                 </span>
               </div>
-            </div>
-            <div class="pl-[52px]">
-              <p class="font-label-sm text-label-sm text-on-surface-variant">Carrera</p>
-              <p class="font-body-sm text-body-sm text-on-surface">{{ est.carrera }}</p>
             </div>
           </div>
         } @empty {
