@@ -118,7 +118,6 @@
                   </div>
                   <div>
                     <p class="font-label-md text-label-md text-on-surface">{{ est.nombre }}</p>
-                    <p class="font-body-sm text-body-sm text-on-surface-variant">{{ est.email }}</p>
                   </div>
                 </div>
               </td>
@@ -179,7 +178,6 @@
               </div>
               <div class="min-w-0">
                 <p class="font-label-md text-label-md text-on-surface truncate">{{ est.nombre }}</p>
-                <p class="font-body-sm text-body-sm text-on-surface-variant truncate">{{ est.email }}</p>
               </div>
             </div>
             <div class="flex gap-1 shrink-0">
@@ -275,16 +273,33 @@
           />
         </div>
         <div class="space-y-1">
-          <label class="font-label-sm text-label-sm text-on-surface-variant block">Email</label>
-          <input
-            type="email"
-            [(ngModel)]="formEmail"
-            name="email"
+          <label class="font-label-sm text-label-sm text-on-surface-variant block">Ciclo</label>
+          <select
+            [(ngModel)]="formCiclo"
+            name="ciclo"
             required
-            placeholder="correo@elite.edu"
+            (change)="actualizarPreview()"
             class="w-full bg-surface-container-low border border-outline-variant rounded-lg py-2.5 px-3 font-body-md text-body-md focus:border-primary focus:bg-white transition-all"
-          />
+          >
+            <option value="I">Ciclo I — AEI</option>
+            <option value="II">Ciclo II — AEII</option>
+          </select>
         </div>
+      </div>
+
+      @if (formCodigoPreview && !editandoCodigo) {
+        <div class="flex items-center gap-3 bg-primary-container/10 border border-primary/20 rounded-lg py-3 px-4">
+          <span class="material-symbols-outlined text-primary text-xl">badge</span>
+          <div>
+            <p class="font-label-md text-label-md text-primary font-bold">{{ formCodigoPreview }}</p>
+            <p class="font-body-sm text-body-sm text-on-surface-variant">
+              Usuario y contraseña: <span class="font-mono font-bold">{{ formUsernamePreview }}</span>
+            </p>
+          </div>
+        </div>
+      }
+
+      <div class="grid grid-cols-1 sm:grid-cols-2 gap-md">
         <div class="space-y-1">
           <label class="font-label-sm text-label-sm text-on-surface-variant block">Salón</label>
           <input

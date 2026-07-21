@@ -39,12 +39,15 @@ export class EstudiantesComponent {
 
   // Form
   formNombre = '';
-  formEmail = '';
+  formCiclo: 'I' | 'II' = 'I';
   formSalon = '';
   formCarrera = '';
   formEstado: 'Activo' | 'Pendiente' = 'Activo';
   editandoCodigo: string | null = null;
   showModal = false;
+  /** Vista previa del código que se generará al registrar */
+  formCodigoPreview: string | null = null;
+  formUsernamePreview: string | null = null;
 
   // Pagination
   currentPage = signal(1);
@@ -119,17 +122,24 @@ export class EstudiantesComponent {
   openCreateModal(): void {
     this.editandoCodigo = null;
     this.formNombre = '';
-    this.formEmail = '';
+    this.formCiclo = 'I';
     this.formSalon = '';
     this.formCarrera = '';
     this.formEstado = 'Activo';
+    this.actualizarPreview();
     this.showModal = true;
+  }
+
+  /** Refresca la vista previa del código según el ciclo seleccionado */
+  actualizarPreview(): void {
+    const preview = this.service.previewNextCodigo(this.formCiclo);
+    this.formCodigoPreview = preview.codigo;
+    this.formUsernamePreview = preview.docId;
   }
 
   openEditModal(est: Estudiante): void {
     this.editandoCodigo = est.codigo;
     this.formNombre = est.nombre;
-    this.formEmail = est.email;
     this.formSalon = est.salon;
     this.formCarrera = est.carrera;
     this.formEstado = est.estado;
@@ -139,10 +149,13 @@ export class EstudiantesComponent {
   closeModal(): void {
     this.showModal = false;
     this.editandoCodigo = null;
+    this.formCiclo = 'I';
+    this.formCodigoPreview = null;
+    this.formUsernamePreview = null;
   }
 
   onSubmit(): void {
-    if (!this.formNombre || !this.formEmail || !this.formSalon || !this.formCarrera) return;
+    if (!this.formNombre || !this.formSalon || !this.formCarrera) return;
 
     const confirmText = this.editandoCodigo ? 'Guardar cambios' : 'Registrar estudiante';
     this.confirm
@@ -164,21 +177,23 @@ export class EstudiantesComponent {
           if (this.editandoCodigo) {
             await this.service.actualizar(this.editandoCodigo, {
               nombre: this.formNombre,
-              email: this.formEmail,
               salon: this.formSalon,
               carrera: this.formCarrera,
               estado: this.formEstado,
             });
             this.toast.show('Estudiante actualizado correctamente', 'success');
           } else {
-            await this.service.crear({
+            const codigo = await this.service.crear({
               nombre: this.formNombre,
-              email: this.formEmail,
               salon: this.formSalon,
               carrera: this.formCarrera,
               estado: this.formEstado,
-            });
-            this.toast.show('Estudiante registrado correctamente', 'success');
+            }, this.formCiclo);
+            const user = codigo.replace('#', '');
+            this.toast.show(
+              `✅ Estudiante registrado — Código: ${codigo} | Usuario y clave: ${user}`,
+              'success'
+            );
           }
           this.closeModal();
         } catch (err) {
