@@ -216,14 +216,25 @@ export class EstudiantesComponent implements OnDestroy {
     this.formFotoUrl = '';
   }
 
+  formFotoError = signal('');
+
   onFotoChange(event: Event): void {
     const input = event.target as HTMLInputElement;
     const file = input.files?.[0];
     if (!file) return;
-    this.formFoto.set(file);
-    const reader = new FileReader();
-    reader.onload = () => this.formFotoPreview.set(reader.result as string);
-    reader.readAsDataURL(file);
+    this.formFotoError.set('');
+    try {
+      this.fotoService.validar(file);
+      this.formFoto.set(file);
+      const reader = new FileReader();
+      reader.onload = () => this.formFotoPreview.set(reader.result as string);
+      reader.readAsDataURL(file);
+    } catch (err: any) {
+      this.formFotoError.set(err.message);
+      this.formFoto.set(null);
+      this.formFotoPreview.set(null);
+      input.value = '';
+    }
   }
 
   clearFoto(): void {

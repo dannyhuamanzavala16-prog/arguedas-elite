@@ -65,7 +65,12 @@
         <div class="flex items-center gap-sm">
           <span class="font-label-md text-label-md font-bold text-primary truncate max-w-[150px] sm:max-w-none">{{ displayName }}</span>
           <div class="w-10 h-10 rounded-full bg-primary-container flex items-center justify-center text-on-primary-container overflow-hidden border border-outline/10 shrink-0">
-            <span class="material-symbols-outlined" style="font-size: 24px;">person</span>
+            @let foto = auth.getUsuario()?.foto;
+            @if (foto) {
+              <img [src]="foto" alt="Foto de perfil" class="w-full h-full object-cover">
+            } @else {
+              <span class="material-symbols-outlined" style="font-size: 24px;">person</span>
+            }
           </div>
         </div>
       </div>

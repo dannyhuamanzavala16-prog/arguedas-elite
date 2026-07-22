@@ -5,4 +5,5 @@ export interface Usuario {
   role: UserRole;
   nombre: string;
   email: string;
+  foto?: string;
 }

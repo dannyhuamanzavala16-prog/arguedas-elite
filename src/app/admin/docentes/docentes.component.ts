@@ -308,6 +308,12 @@ const ROWS_PER_PAGE = 7;
               }
               <input id="docenteFotoInput" type="file" class="hidden" accept="image/jpeg,image/png,image/gif,image/webp"
                      (change)="onFotoChange($event)" />
+              @if (formFotoError()) {
+                <p class="font-label-sm text-label-sm text-error flex items-center gap-1 mt-1">
+                  <span class="material-symbols-outlined" style="font-size:16px">error</span>
+                  {{ formFotoError() }}
+                </p>
+              }
             </div>
           </div>
 
@@ -455,15 +461,25 @@ export class DocentesComponent implements OnDestroy {
 
   closeModal(): void { this.showModal = false; this.editandoCodigo = null; this.formCodigoPreview = null; this.formUsernamePreview = null; this.formFoto.set(null); this.formFotoPreview.set(null); this.formFotoUrl = ''; }
 
+  formFotoError = signal('');
+
   onFotoChange(event: Event): void {
     const input = event.target as HTMLInputElement;
     const file = input.files?.[0];
     if (!file) return;
-    this.formFoto.set(file);
-    // Crear preview local
-    const reader = new FileReader();
-    reader.onload = () => this.formFotoPreview.set(reader.result as string);
-    reader.readAsDataURL(file);
+    this.formFotoError.set('');
+    try {
+      this.fotoService.validar(file);
+      this.formFoto.set(file);
+      const reader = new FileReader();
+      reader.onload = () => this.formFotoPreview.set(reader.result as string);
+      reader.readAsDataURL(file);
+    } catch (err: any) {
+      this.formFotoError.set(err.message);
+      this.formFoto.set(null);
+      this.formFotoPreview.set(null);
+      input.value = '';
+    }
   }
 
   clearFoto(): void {

@@ -126,6 +126,7 @@ export class AuthService {
           role: data.role,
           nombre: data.nombre ?? user.displayName ?? '',
           email: data.email ?? user.email ?? '',
+          foto: data.foto ?? undefined,
         };
         this.state.set({ user, usuario, role: usuario.role });
         this._isLoaded.set(true);
