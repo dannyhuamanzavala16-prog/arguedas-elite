@@ -318,7 +318,7 @@
   </div>
 
   <!-- Modal Form -->
-  <app-modal [isOpen]="showModal" (close)="closeModal()">
+  <app-modal [isOpen]="showModal()" (close)="closeModal()">
     <div class="p-md border-b border-outline/10 flex justify-between items-center">
       <h3 class="font-headline-sm text-headline-sm text-on-surface">
         {{ editandoCodigo ? 'Editar Estudiante' : 'Registrar Estudiante' }}
@@ -433,21 +433,31 @@
         <div class="space-y-1">
           <label class="font-label-sm text-label-sm text-on-surface-variant block">Teléfono del estudiante</label>
           <input
-            type="tel"
+            type="text"
+            inputmode="numeric"
+            pattern="[0-9]{9}"
+            maxlength="9"
             [(ngModel)]="formTelefono"
             name="telefono"
-            placeholder="Ej: 987 654 321"
+            placeholder="Ej: 987654321"
+            title="9 dígitos numéricos"
             class="w-full bg-surface-container-low border border-outline-variant rounded-lg py-2.5 px-3 font-body-md text-body-md focus:border-primary focus:bg-white transition-all"
+            (ngModelChange)="formTelefono = $event.replace(/\D/g, '')"
           />
         </div>
         <div class="space-y-1">
           <label class="font-label-sm text-label-sm text-on-surface-variant block">Teléfono del apoderado</label>
           <input
-            type="tel"
+            type="text"
+            inputmode="numeric"
+            pattern="[0-9]{9}"
+            maxlength="9"
             [(ngModel)]="formTelefonoApoderado"
             name="telefonoApoderado"
-            placeholder="Ej: 987 654 322"
+            placeholder="Ej: 987654322"
+            title="9 dígitos numéricos"
             class="w-full bg-surface-container-low border border-outline-variant rounded-lg py-2.5 px-3 font-body-md text-body-md focus:border-primary focus:bg-white transition-all"
+            (ngModelChange)="formTelefonoApoderado = $event.replace(/\D/g, '')"
           />
         </div>
         <div class="space-y-1">

@@ -131,6 +131,7 @@ const ROWS_PER_PAGE = 7;
                   <th class="px-md py-sm font-label-sm text-label-sm text-on-surface-variant uppercase tracking-wider">Docente</th>
                   <th class="px-md py-sm font-label-sm text-label-sm text-on-surface-variant uppercase tracking-wider">Especialidad</th>
                   <th class="px-md py-sm font-label-sm text-label-sm text-on-surface-variant uppercase tracking-wider">Cursos</th>
+                  <th class="px-md py-sm font-label-sm text-label-sm text-on-surface-variant uppercase tracking-wider">Teléfono</th>
                   <th class="px-md py-sm font-label-sm text-label-sm text-on-surface-variant uppercase tracking-wider">Estado</th>
                   <th class="px-md py-sm font-label-sm text-label-sm text-on-surface-variant uppercase tracking-wider text-right">Acciones</th>
                 </tr>
@@ -138,7 +139,7 @@ const ROWS_PER_PAGE = 7;
               <tbody class="divide-y divide-outline/5">
                 @for (doc of paginated(); track doc.codigo; let i = $index) {
                   <tr class="hover:bg-surface-container-low transition-colors group">
-                    <td class="px-md py-md font-label-md text-label-md text-primary font-bold">{{ doc.codigo }}</td>
+                    <td class="px-md py-md font-label-md text-label-md text-primary font-bold">{{ formatCodigo(doc.codigo) }}</td>
                   <td class="px-md py-md">
                     <div class="flex items-center gap-sm">
                       @if (doc.foto) {
@@ -161,6 +162,7 @@ const ROWS_PER_PAGE = 7;
                         }
                       </div>
                     </td>
+                    <td class="px-md py-md font-body-md text-body-md">{{ doc.telefono || '—' }}</td>
                     <td class="px-md py-md">
                       <span class="px-sm py-1 rounded-full font-label-sm text-label-sm"
                             [class.bg-green-100]="doc.estado === 'Activo'" [class.text-green-700]="doc.estado === 'Activo'"
@@ -180,7 +182,7 @@ const ROWS_PER_PAGE = 7;
                     </td>
                   </tr>
                 } @empty {
-                  <tr><td colspan="6" class="text-center py-xl text-on-surface-variant font-body-md text-body-md">No hay docentes registrados</td></tr>
+                  <tr><td colspan="7" class="text-center py-xl text-on-surface-variant font-body-md text-body-md">No hay docentes registrados</td></tr>
                 }
               </tbody>
             </table>
@@ -215,7 +217,7 @@ const ROWS_PER_PAGE = 7;
                 <div class="grid grid-cols-3 gap-xs text-body-sm pl-[52px]">
                   <div>
                     <p class="font-label-sm text-label-sm text-on-surface-variant">Código</p>
-                    <p class="font-label-md text-label-md text-primary font-bold">{{ doc.codigo }}</p>
+                    <p class="font-label-md text-label-md text-primary font-bold">{{ formatCodigo(doc.codigo) }}</p>
                   </div>
                   <div>
                     <p class="font-label-sm text-label-sm text-on-surface-variant">Especialidad</p>
@@ -231,6 +233,12 @@ const ROWS_PER_PAGE = 7;
                   </div>
                 </div>
                 
+                <!-- Teléfono row -->
+                <div class="pl-[52px] mt-2">
+                  <p class="font-label-sm text-label-sm text-on-surface-variant">Teléfono</p>
+                  <p class="font-body-sm text-body-sm text-on-surface">{{ doc.telefono || '—' }}</p>
+                </div>
+
                 <!-- Cursos -->
                 <div class="pl-[52px] space-y-1">
                   <p class="font-label-sm text-label-sm text-on-surface-variant">Cursos</p>
@@ -256,7 +264,7 @@ const ROWS_PER_PAGE = 7;
       </div>
 
       <!-- Modal -->
-      <app-modal [isOpen]="showModal" (close)="closeModal()">
+      <app-modal [isOpen]="showModal()" (close)="closeModal()">
         <div class="p-md border-b border-outline/10 flex justify-between items-center">
           <h3 class="font-headline-sm text-headline-sm text-on-surface">{{ editandoCodigo ? 'Editar Docente' : 'Registrar Docente' }}</h3>
           <button class="w-9 h-9 flex items-center justify-center rounded-lg text-on-surface-variant hover:bg-surface-container transition-colors" (click)="closeModal()">
@@ -276,7 +284,7 @@ const ROWS_PER_PAGE = 7;
             <div class="flex items-center gap-3 bg-primary-container/10 border border-primary/20 rounded-lg py-3 px-4">
               <span class="material-symbols-outlined text-primary text-xl">badge</span>
               <div>
-                <p class="font-label-md text-label-md text-primary font-bold">{{ formCodigoPreview }}</p>
+                <p class="font-label-md text-label-md text-primary font-bold">{{ formatCodigo(formCodigoPreview) }}</p>
                 <p class="font-body-sm text-body-sm text-on-surface-variant">
                   Usuario y contraseña: <span class="font-mono font-bold">{{ formUsernamePreview }}</span>
                 </p>
@@ -326,6 +334,22 @@ const ROWS_PER_PAGE = 7;
             <div class="space-y-1">
               <label class="font-label-sm text-label-sm text-on-surface-variant block">Cursos (separados por coma)</label>
               <input type="text" [(ngModel)]="formCursos" name="cursos" placeholder="Ej: Álgebra, Trigonometría"
+                     class="w-full bg-surface-container-low border border-outline-variant rounded-lg py-2.5 px-3 font-body-md text-body-md focus:border-primary focus:bg-white transition-all" />
+            </div>
+            <div class="space-y-1">
+              <label class="font-label-sm text-label-sm text-on-surface-variant block">Teléfono</label>
+              <input type="text" inputmode="numeric" maxlength="9" [(ngModel)]="formTelefono" name="telefono" placeholder="Ej: 987654321"
+                     class="w-full bg-surface-container-low border border-outline-variant rounded-lg py-2.5 px-3 font-body-md text-body-md focus:border-primary focus:bg-white transition-all"
+                     (ngModelChange)="formTelefono = $event.replace(/\D/g, '')" />
+            </div>
+            <div class="space-y-1">
+              <label class="font-label-sm text-label-sm text-on-surface-variant block">Especialización</label>
+              <input type="text" [(ngModel)]="formEspecializacion" name="especializacion" placeholder="Ej: Educación Secundaria"
+                     class="w-full bg-surface-container-low border border-outline-variant rounded-lg py-2.5 px-3 font-body-md text-body-md focus:border-primary focus:bg-white transition-all" />
+            </div>
+            <div class="space-y-1">
+              <label class="font-label-sm text-label-sm text-on-surface-variant block">Fecha de Nacimiento</label>
+              <input type="date" [(ngModel)]="formFechaNacimiento" name="fechaNacimiento"
                      class="w-full bg-surface-container-low border border-outline-variant rounded-lg py-2.5 px-3 font-body-md text-body-md focus:border-primary focus:bg-white transition-all" />
             </div>
             <div class="space-y-1">
@@ -382,8 +406,11 @@ export class DocentesComponent implements OnDestroy {
   formEspecialidad = '';
   formCursos = '';
   formEstado: 'Activo' | 'Pendiente' = 'Activo';
+  formTelefono = '';
+  formEspecializacion = '';
+  formFechaNacimiento = '';
   editandoCodigo: string | null = null;
-  showModal = false;
+  showModal = signal(false);
   formCodigoPreview: string | null = null;
   formUsernamePreview: string | null = null;
   formFoto = signal<File | null>(null);
@@ -413,6 +440,11 @@ export class DocentesComponent implements OnDestroy {
 
   getAvatarColor(i: number) { return AVATAR_COLORS[i % AVATAR_COLORS.length]; }
   getInitials(name: string) { return name.split(' ').map(p => p[0]).join('').substring(0, 2).toUpperCase(); }
+  formatCodigo(codigo: string): string {
+    // Normaliza: #DOC-2025-001 → #DOC001, #DOC001 → #DOC001
+    const match = codigo.match(/(\d+)$/);
+    return match ? `#DOC${match[1].padStart(3, '0')}` : codigo;
+  }
   onPageChange(page: number) { this.currentPage.set(page); }
   toggleFilters(): void {
     this.showFilters = !this.showFilters;
@@ -440,26 +472,30 @@ export class DocentesComponent implements OnDestroy {
 
   openCreateModal(): void {
     this.editandoCodigo = null; this.formNombre = ''; this.formEspecialidad = ''; this.formCursos = ''; this.formEstado = 'Activo';
+    this.formTelefono = ''; this.formEspecializacion = ''; this.formFechaNacimiento = '';
     const preview = this.service.previewNextCodigo();
     this.formCodigoPreview = preview.codigo;
     this.formUsernamePreview = preview.docId;
     this.formFoto.set(null);
     this.formFotoPreview.set(null);
     this.formFotoUrl = '';
-    this.showModal = true;
+    this.showModal.set(true);
   }
 
   openEditModal(doc: Docente): void {
     this.editandoCodigo = doc.codigo;
     this.formNombre = doc.nombre; this.formEspecialidad = doc.especialidad;
     this.formCursos = doc.cursos.join(', '); this.formEstado = doc.estado;
+    this.formTelefono = doc.telefono ?? '';
+    this.formEspecializacion = doc.especializacion ?? '';
+    this.formFechaNacimiento = doc.fechaNacimiento ?? '';
     this.formFoto.set(null);
     this.formFotoPreview.set(null);
     this.formFotoUrl = doc.foto ?? '';
-    this.showModal = true;
+    this.showModal.set(true);
   }
 
-  closeModal(): void { this.showModal = false; this.editandoCodigo = null; this.formCodigoPreview = null; this.formUsernamePreview = null; this.formFoto.set(null); this.formFotoPreview.set(null); this.formFotoUrl = ''; }
+  closeModal(): void { this.showModal.set(false); this.editandoCodigo = null; this.formCodigoPreview = null; this.formUsernamePreview = null; this.formNombre = ''; this.formEspecialidad = ''; this.formCursos = ''; this.formEstado = 'Activo'; this.formTelefono = ''; this.formEspecializacion = ''; this.formFechaNacimiento = ''; this.formFoto.set(null); this.formFotoPreview.set(null); this.formFotoUrl = ''; }
 
   formFotoError = signal('');
 
@@ -518,14 +554,23 @@ export class DocentesComponent implements OnDestroy {
       }
 
       if (this.editandoCodigo) {
-        await this.service.actualizar(this.editandoCodigo, { nombre: this.formNombre, especialidad: this.formEspecialidad, cursos, estado: this.formEstado, foto: fotoUrl });
+        await this.service.actualizar(this.editandoCodigo, {
+          nombre: this.formNombre, especialidad: this.formEspecialidad, cursos, estado: this.formEstado,
+          telefono: this.formTelefono, especializacion: this.formEspecializacion, fechaNacimiento: this.formFechaNacimiento,
+          foto: fotoUrl,
+        });
         this.toast.show('Docente actualizado correctamente', 'success');
+        this.closeModal();
       } else {
-        const codigo = await this.service.crear({ nombre: this.formNombre, especialidad: this.formEspecialidad, cursos, estado: this.formEstado, foto: fotoUrl });
+        const codigo = await this.service.crear({
+          nombre: this.formNombre, especialidad: this.formEspecialidad, cursos, estado: this.formEstado,
+          telefono: this.formTelefono, especializacion: this.formEspecializacion, fechaNacimiento: this.formFechaNacimiento,
+          foto: fotoUrl,
+        });
         const user = codigo.replace('#', '');
         this.toast.show(`✅ Docente registrado — Código: ${codigo} | Usuario y clave: ${user}`, 'success');
+        this.closeModal();
       }
-      this.closeModal();
     } catch (err) {
       console.error('Error al guardar docente:', err);
       this.toast.show('Error al guardar. Intente de nuevo.', 'error');

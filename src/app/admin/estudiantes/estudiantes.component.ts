@@ -85,7 +85,7 @@ export class EstudiantesComponent implements OnDestroy {
   formCarrera = '';
   formEstado: 'Activo' | 'Pendiente' = 'Activo';
   editandoCodigo: string | null = null;
-  showModal = false;
+  showModal = signal(false);
   /** Vista previa del código que se generará al registrar */
   formCodigoPreview: string | null = null;
   formUsernamePreview: string | null = null;
@@ -183,7 +183,7 @@ export class EstudiantesComponent implements OnDestroy {
     this.formFotoPreview.set(null);
     this.formFotoUrl = '';
     this.actualizarPreview();
-    this.showModal = true;
+    this.showModal.set(true);
   }
 
   /** Refresca la vista previa del código según el ciclo seleccionado */
@@ -202,11 +202,11 @@ export class EstudiantesComponent implements OnDestroy {
     this.formFoto.set(null);
     this.formFotoPreview.set(null);
     this.formFotoUrl = est.foto ?? '';
-    this.showModal = true;
+    this.showModal.set(true);
   }
 
   closeModal(): void {
-    this.showModal = false;
+    this.showModal.set(false);
     this.editandoCodigo = null;
     this.formCiclo = 'I';
     this.formCodigoPreview = null;
@@ -280,12 +280,15 @@ export class EstudiantesComponent implements OnDestroy {
       if (this.editandoCodigo) {
         await this.service.actualizar(this.editandoCodigo, {
           nombre: this.formNombre,
+          telefono: this.formTelefono,
+          telefonoApoderado: this.formTelefonoApoderado,
           salon: this.formSalon,
           carrera: this.formCarrera,
           estado: this.formEstado,
           foto: fotoUrl,
         });
         this.toast.show('Estudiante actualizado correctamente', 'success');
+        this.closeModal();
       } else {
         const codigo = await this.service.crear({
           nombre: this.formNombre,
@@ -301,8 +304,8 @@ export class EstudiantesComponent implements OnDestroy {
           `✅ Estudiante registrado — Código: ${codigo} | Usuario y clave: ${user}`,
           'success'
         );
+        this.closeModal();
       }
-      this.closeModal();
     } catch (err) {
       console.error('Error al guardar:', err);
       this.toast.show('Error al guardar. Intente de nuevo.', 'error');

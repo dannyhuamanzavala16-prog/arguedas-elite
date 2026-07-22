@@ -61,6 +61,9 @@ export class DocentesService extends FirestoreCollectionService<Docente> {
       nombre: data.nombre,
       email,
       foto: data.foto ?? '',
+      telefono: data.telefono ?? '',
+      especializacion: data.especializacion ?? '',
+      fechaNacimiento: data.fechaNacimiento ?? '',
     });
 
     // 3. Crear documento en docentes/{docId}
@@ -71,6 +74,9 @@ export class DocentesService extends FirestoreCollectionService<Docente> {
       cursos: data.cursos,
       estado: data.estado,
       foto: data.foto ?? '',
+      telefono: data.telefono ?? '',
+      especializacion: data.especializacion ?? '',
+      fechaNacimiento: data.fechaNacimiento ?? '',
       codigo,
       createdAt: new Date().toISOString(),
     });
@@ -82,11 +88,18 @@ export class DocentesService extends FirestoreCollectionService<Docente> {
     const docId = codigo.replace('#', '');
     await this.update(docId, cambios);
 
-    // Si incluye foto, actualizar también en usuarios/{uid}
-    if (cambios.foto !== undefined) {
+    // Sincronizar campos relevantes a usuarios/{uid}
+    const camposUsuario: Record<string, any> = {};
+    if (cambios.foto !== undefined) camposUsuario['foto'] = cambios.foto;
+    if (cambios.telefono !== undefined) camposUsuario['telefono'] = cambios.telefono;
+    if (cambios.especializacion !== undefined) camposUsuario['especializacion'] = cambios.especializacion;
+    if (cambios.fechaNacimiento !== undefined) camposUsuario['fechaNacimiento'] = cambios.fechaNacimiento;
+    if (cambios.nombre !== undefined) camposUsuario['nombre'] = cambios.nombre;
+
+    if (Object.keys(camposUsuario).length > 0) {
       const q = query(collection(this.firestore, 'usuarios'), where('username', '==', docId));
       const snapshot = await getDocs(q);
-      snapshot.forEach((d) => updateDoc(doc(this.firestore, `usuarios/${d.id}`), { foto: cambios.foto }));
+      snapshot.forEach((d) => updateDoc(doc(this.firestore, `usuarios/${d.id}`), camposUsuario));
     }
   }
 

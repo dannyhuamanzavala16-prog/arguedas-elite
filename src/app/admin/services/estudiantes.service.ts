@@ -68,6 +68,8 @@ export class EstudiantesService extends FirestoreCollectionService<Estudiante> {
       nombre: est.nombre,
       email,
       foto: est.foto ?? '',
+      telefono: est.telefono ?? '',
+      telefonoApoderado: est.telefonoApoderado ?? '',
     });
 
     // 3. Crear documento en estudiantes/{docId}
@@ -91,10 +93,16 @@ export class EstudiantesService extends FirestoreCollectionService<Estudiante> {
     const docId = codigo.replace('#', '');
     await this.update(docId, cambios);
 
-    if (cambios.foto !== undefined) {
+    const camposUsuario: Record<string, any> = {};
+    if (cambios.foto !== undefined) camposUsuario['foto'] = cambios.foto;
+    if (cambios.telefono !== undefined) camposUsuario['telefono'] = cambios.telefono;
+    if (cambios.telefonoApoderado !== undefined) camposUsuario['telefonoApoderado'] = cambios.telefonoApoderado;
+    if (cambios.nombre !== undefined) camposUsuario['nombre'] = cambios.nombre;
+
+    if (Object.keys(camposUsuario).length > 0) {
       const q = query(collection(this.firestore, 'usuarios'), where('username', '==', docId));
       const snapshot = await getDocs(q);
-      snapshot.forEach((d) => updateDoc(doc(this.firestore, `usuarios/${d.id}`), { foto: cambios.foto }));
+      snapshot.forEach((d) => updateDoc(doc(this.firestore, `usuarios/${d.id}`), camposUsuario));
     }
   }
 

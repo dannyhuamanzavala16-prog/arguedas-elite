@@ -8,4 +8,7 @@ export interface Docente {
   cursos: string[];
   estado: 'Activo' | 'Pendiente';
   foto?: string;
+  telefono?: string;
+  especializacion?: string;
+  fechaNacimiento?: string;
 }
