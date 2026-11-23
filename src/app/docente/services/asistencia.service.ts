@@ -45,6 +45,10 @@ export class AsistenciaService {
   private readonly _loading = signal(true);
   readonly loading = this._loading.asReadonly();
 
+  /** true si ya existe un documento de asistencia guardado para hoy. */
+  private readonly _registrada = signal(false);
+  readonly registrada = this._registrada.asReadonly();
+
   // Estado de sincronización en tiempo real
   private readonly _syncStatus = signal<'sincronizando' | 'guardado' | 'error'>('guardado');
   readonly syncStatus = this._syncStatus.asReadonly();
@@ -70,25 +74,26 @@ export class AsistenciaService {
 
         return docData(docRef).pipe(
           map((data: any) => {
-            if (data && data.estudiantes) {
-              return data.estudiantes as EstudianteAsistencia[];
-            }
-            // Si no existe un registro guardado para hoy, cargamos los estudiantes activos de la BD
-            return allEsts.map((e) => ({
-              id: e.codigo,
-              nombre: e.nombre,
-              presente: true, // Default a presente para facilitar el marcado
-              nota: '',
-            }));
+            const registrada = !!(data && data.estudiantes);
+            const lista = registrada
+              ? (data.estudiantes as EstudianteAsistencia[])
+              : allEsts.map((e) => ({
+                  id: e.codigo,
+                  nombre: e.nombre,
+                  presente: true, // Default a presente para facilitar el marcado
+                  nota: '',
+                }));
+            return { lista, registrada };
           })
         );
       })
     ).subscribe({
-      next: (ests) => {
+      next: ({ lista, registrada }) => {
         // No pisar cambios locales que todavía no se persistieron
         if (this.localRevision === 0) {
-          this._estudiantes.set(ests);
+          this._estudiantes.set(lista);
         }
+        this._registrada.set(registrada);
         this._loading.set(false);
       },
       error: (err) => {
