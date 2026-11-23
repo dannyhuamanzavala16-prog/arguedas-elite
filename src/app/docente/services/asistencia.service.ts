@@ -9,12 +9,9 @@ import { ASISTENCIA_CURSOS, ASISTENCIA_GRUPOS } from '../../shared/services/mock
 export interface EstudianteAsistencia {
   id: string;
   nombre: string;
-  presente: boolean;
+  presente: boolean | null;
   nota: string;
 }
-
-/** Espera antes de escribir, para no guardar en cada tecla. */
-const SAVE_DEBOUNCE_MS = 700;
 
 function getTodayString(): string {
   const d = new Date();
@@ -25,7 +22,8 @@ function getTodayString(): string {
 }
 
 function getDocId(fecha: string, curso: string, grupo: string): string {
-  const clean = (str: string) => str.toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g, '').replace(/[^a-z0-9]+/g, '-');
+  const clean = (str: string) =>
+    str.toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g, '').replace(/[^a-z0-9]+/g, '-');
   return `${fecha}_${clean(curso)}_${clean(grupo)}`;
 }
 
@@ -37,6 +35,9 @@ export class AsistenciaService {
   private readonly _estudiantes = signal<EstudianteAsistencia[]>([]);
   readonly estudiantes = this._estudiantes.asReadonly();
 
+  private readonly _fecha = signal(getTodayString());
+  readonly fecha = this._fecha.asReadonly();
+
   private readonly _curso = signal(ASISTENCIA_CURSOS[0]);
   private readonly _grupo = signal(ASISTENCIA_GRUPOS[1]);
   readonly curso = this._curso.asReadonly();
@@ -45,62 +46,64 @@ export class AsistenciaService {
   private readonly _loading = signal(true);
   readonly loading = this._loading.asReadonly();
 
-  /** true si ya existe un documento de asistencia guardado para hoy. */
+  /** true si ya existe un documento de asistencia guardado para esta fecha/curso/grupo. */
   private readonly _registrada = signal(false);
   readonly registrada = this._registrada.asReadonly();
 
-  // Estado de sincronización en tiempo real
-  private readonly _syncStatus = signal<'sincronizando' | 'guardado' | 'error'>('guardado');
+  /** Estado de sincronización para la UI */
+  private readonly _syncStatus = signal<'sin cambios' | 'pendiente' | 'guardando' | 'guardado' | 'error'>('sin cambios');
   readonly syncStatus = this._syncStatus.asReadonly();
 
-  /** Cambios locales pendientes. Mientras sea > 0 se ignora el eco de Firestore. */
+  /** Cambios locales pendientes de guardar */
   private localRevision = 0;
-  private debounceTimer?: ReturnType<typeof setTimeout>;
-  /** Serializa las escrituras para que nunca lleguen fuera de orden. */
-  private writeChain: Promise<boolean> = Promise.resolve(true);
 
   constructor() {
-    // Escuchar de forma reactiva los cambios de curso, grupo y de la lista global de estudiantes
     combineLatest([
+      toObservable(this._fecha),
       toObservable(this._curso),
       toObservable(this._grupo),
-      toObservable(this.estudiantesService.estudiantes)
-    ]).pipe(
-      tap(() => this._loading.set(true)),
-      switchMap(([curso, grupo, allEsts]) => {
-        const today = getTodayString();
-        const docId = getDocId(today, curso, grupo);
-        const docRef = doc(this.firestore, 'asistencias', docId);
+      toObservable(this.estudiantesService.estudiantes),
+    ])
+      .pipe(
+        tap(() => this._loading.set(true)),
+        switchMap(([fecha, curso, grupo, allEsts]) => {
+          const docId = getDocId(fecha, curso, grupo);
+          const docRef = doc(this.firestore, 'asistencias', docId);
 
-        return docData(docRef).pipe(
-          map((data: any) => {
-            const registrada = !!(data && data.estudiantes);
-            const lista = registrada
-              ? (data.estudiantes as EstudianteAsistencia[])
-              : allEsts.map((e) => ({
-                  id: e.codigo,
-                  nombre: e.nombre,
-                  presente: true, // Default a presente para facilitar el marcado
-                  nota: '',
-                }));
-            return { lista, registrada };
-          })
-        );
-      })
-    ).subscribe({
-      next: ({ lista, registrada }) => {
-        // No pisar cambios locales que todavía no se persistieron
-        if (this.localRevision === 0) {
-          this._estudiantes.set(lista);
-        }
-        this._registrada.set(registrada);
-        this._loading.set(false);
-      },
-      error: (err) => {
-        console.error('Error loading attendance data:', err);
-        this._loading.set(false);
-      }
-    });
+          return docData(docRef).pipe(
+            map((data: any) => {
+              const registrada = !!(data && data.estudiantes);
+              const lista: EstudianteAsistencia[] = registrada
+                ? (data.estudiantes as any[]).map((e) => ({
+                    id: e.id,
+                    nombre: e.nombre,
+                    presente: e.presente === true ? true : e.presente === false ? false : null,
+                    nota: e.nota ?? '',
+                  }))
+                : allEsts.map((e) => ({
+                    id: e.codigo,
+                    nombre: e.nombre,
+                    presente: null,
+                    nota: '',
+                  }));
+              return { lista, registrada };
+            })
+          );
+        })
+      )
+      .subscribe({
+        next: ({ lista, registrada }) => {
+          if (this.localRevision === 0) {
+            this._estudiantes.set(lista);
+          }
+          this._registrada.set(registrada);
+          this._loading.set(false);
+        },
+        error: (err) => {
+          console.error('Error loading attendance data:', err);
+          this._loading.set(false);
+        },
+      });
   }
 
   get cursos(): string[] {
@@ -110,94 +113,87 @@ export class AsistenciaService {
     return [...ASISTENCIA_GRUPOS];
   }
 
+  async actualizarFecha(fecha: string): Promise<void> {
+    if (fecha === this._fecha()) return;
+    if (this.localRevision > 0) {
+      await this.guardar();
+    }
+    this.localRevision = 0;
+    this._fecha.set(fecha);
+    this._syncStatus.set('sin cambios');
+  }
+
   async actualizarCurso(curso: string): Promise<void> {
-    await this.flush();
+    if (curso === this._curso()) return;
+    if (this.localRevision > 0) {
+      await this.guardar();
+    }
+    this.localRevision = 0;
     this._curso.set(curso);
+    this._syncStatus.set('sin cambios');
   }
 
   async actualizarGrupo(grupo: string): Promise<void> {
-    await this.flush();
+    if (grupo === this._grupo()) return;
+    if (this.localRevision > 0) {
+      await this.guardar();
+    }
+    this.localRevision = 0;
     this._grupo.set(grupo);
+    this._syncStatus.set('sin cambios');
   }
 
-  marcarEstudiante(id: string, presente: boolean): void {
-    this.aplicarCambio((list) => list.map((e) => (e.id === id ? { ...e, presente } : e)));
+  marcarEstudiante(id: string, presente: boolean | null): void {
+    this._estudiantes.update((list) =>
+      list.map((e) => (e.id === id ? { ...e, presente } : e))
+    );
+    this.localRevision++;
+    this._syncStatus.set('pendiente');
   }
 
   actualizarNota(id: string, nota: string): void {
-    this.aplicarCambio((list) => list.map((e) => (e.id === id ? { ...e, nota } : e)));
-  }
-
-  marcarTodos(presente: boolean): Promise<boolean> {
-    this._estudiantes.update((list) => list.map((e) => ({ ...e, presente })));
+    this._estudiantes.update((list) =>
+      list.map((e) => (e.id === id ? { ...e, nota } : e))
+    );
     this.localRevision++;
-    return this.flush();
+    this._syncStatus.set('pendiente');
   }
 
-  getStats(): { presentes: number; ausentes: number; porcentaje: number; total: number } {
+  getStats(): { presentes: number; ausentes: number; sinMarcar: number; porcentaje: number; total: number } {
     const list = this._estudiantes();
     const total = list.length;
-    const presentes = list.filter((e) => e.presente).length;
-    const ausentes = total - presentes;
+    const presentes = list.filter((e) => e.presente === true).length;
+    const ausentes = list.filter((e) => e.presente === false).length;
+    const sinMarcar = total - presentes - ausentes;
     const porcentaje = total > 0 ? Math.round((presentes / total) * 100) : 0;
-    return { presentes, ausentes, porcentaje, total };
+    return { presentes, ausentes, sinMarcar, porcentaje, total };
   }
 
-  /** Guardado explícito (botón). Devuelve false si falló. */
-  guardar(): Promise<boolean> {
-    return this.flush();
-  }
-
-  private aplicarCambio(mutator: (list: EstudianteAsistencia[]) => EstudianteAsistencia[]): void {
-    this._estudiantes.update(mutator);
-    this.localRevision++;
-    this.programarGuardado();
-  }
-
-  private programarGuardado(): void {
-    clearTimeout(this.debounceTimer);
-    this.debounceTimer = setTimeout(() => void this.flush(), SAVE_DEBOUNCE_MS);
-  }
-
-  private flush(): Promise<boolean> {
-    clearTimeout(this.debounceTimer);
-
-    if (this.localRevision === 0) {
-      return Promise.resolve(true);
+  async guardar(): Promise<boolean> {
+    if (this.localRevision === 0 && this._registrada()) {
+      this._syncStatus.set('guardado');
+      return true;
     }
-
-    const revision = this.localRevision;
-    const snapshot = this._estudiantes();
-    this._syncStatus.set('sincronizando');
-
-    this.writeChain = this.writeChain.then(async () => {
-      try {
-        await this.guardarLista(snapshot);
-        if (this.localRevision === revision) {
-          this.localRevision = 0;
-          this._syncStatus.set('guardado');
-        }
-        return true;
-      } catch (e) {
-        console.error('Error auto-guardando asistencia:', e);
-        this._syncStatus.set('error');
-        return false;
-      }
-    });
-
-    return this.writeChain;
+    this._syncStatus.set('guardando');
+    try {
+      await this.guardarLista(this._estudiantes());
+      this.localRevision = 0;
+      this._registrada.set(true);
+      this._syncStatus.set('guardado');
+      return true;
+    } catch (e) {
+      console.error('Error guardando asistencia:', e);
+      this._syncStatus.set('error');
+      return false;
+    }
   }
 
   private async guardarLista(list: EstudianteAsistencia[]): Promise<void> {
-    const today = getTodayString();
-    const curso = this._curso();
-    const grupo = this._grupo();
-    const docRef = doc(this.firestore, 'asistencias', getDocId(today, curso, grupo));
-
+    const docRef = doc(this.firestore, 'asistencias', getDocId(this._fecha(), this._curso(), this._grupo()));
     await setDoc(docRef, {
-      fecha: today,
-      curso,
-      grupo,
+      fecha: this._fecha(),
+      curso: this._curso(),
+      grupo: this._grupo(),
       estudiantes: list,
       updatedAt: new Date().toISOString(),
     });
