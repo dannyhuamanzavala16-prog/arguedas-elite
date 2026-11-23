@@ -46,14 +46,14 @@
 
     <!-- Logout -->
     <div class="px-md mt-auto pt-md border-t border-on-primary/10">
-      <a
-        routerLink="/login"
-        class="flex items-center gap-sm text-on-primary/70 px-md py-sm hover:text-on-primary transition-all"
-        (click)="closeSidebar()"
+      <button
+        type="button"
+        class="w-full flex items-center gap-sm text-on-primary/70 px-md py-sm hover:text-on-primary transition-all"
+        (click)="auth.logoutAndRedirect(); closeSidebar()"
       >
         <span class="material-symbols-outlined">logout</span>
         <span class="font-label-md text-label-md">Cerrar Sesión</span>
-      </a>
+      </button>
     </div>
   </aside>
 

@@ -1,5 +1,7 @@
-import { Component, computed, effect, inject, signal } from '@angular/core';
+import { Component, computed, inject, signal } from '@angular/core';
+import { toObservable, toSignal } from '@angular/core/rxjs-interop';
 import { FormsModule } from '@angular/forms';
+import { distinctUntilChanged, map, of, switchMap } from 'rxjs';
 import {
   Auth,
   updatePassword,
@@ -100,11 +102,11 @@ interface PerfilExtendido {
     </div>
 
     <!-- Change Password Modal -->
-    <app-modal [isOpen]="showChangePassword" (close)="showChangePassword = false">
+    <app-modal [isOpen]="showChangePassword()" (close)="showChangePassword.set(false)">
       <div class="p-md border-b border-outline/10 flex justify-between items-center">
         <h3 class="font-headline-sm text-headline-sm text-on-surface">Cambiar Contraseña</h3>
         <button class="w-9 h-9 flex items-center justify-center rounded-lg text-on-surface-variant hover:bg-surface-container transition-colors"
-                (click)="showChangePassword = false">
+                (click)="showChangePassword.set(false)">
           <span class="material-symbols-outlined">close</span>
         </button>
       </div>
@@ -119,40 +121,40 @@ interface PerfilExtendido {
         <div class="space-y-1">
           <label class="font-label-sm text-label-sm text-on-surface-variant block">Contraseña actual</label>
           <div class="relative">
-            <input [type]="showCurrent ? 'text' : 'password'" [(ngModel)]="cpCurrent" name="cpCurrent" required
+            <input [type]="showCurrent() ? 'text' : 'password'" [(ngModel)]="cpCurrent" name="cpCurrent" required
                    class="w-full bg-surface-container-low border border-outline-variant rounded-lg py-2.5 px-3 pr-12 font-body-md text-body-md focus:border-primary focus:bg-white transition-all" />
             <button type="button" class="absolute right-3 top-1/2 -translate-y-1/2 text-outline hover:text-primary"
-                    (click)="showCurrent = !showCurrent">
-              <span class="material-symbols-outlined">{{ showCurrent ? 'visibility_off' : 'visibility' }}</span>
+                    (click)="showCurrent.update(v => !v)">
+              <span class="material-symbols-outlined">{{ showCurrent() ? 'visibility_off' : 'visibility' }}</span>
             </button>
           </div>
         </div>
         <div class="space-y-1">
           <label class="font-label-sm text-label-sm text-on-surface-variant block">Nueva contraseña</label>
           <div class="relative">
-            <input [type]="showNew ? 'text' : 'password'" [(ngModel)]="cpNew" name="cpNew" required
+            <input [type]="showNew() ? 'text' : 'password'" [(ngModel)]="cpNew" name="cpNew" required
                    class="w-full bg-surface-container-low border border-outline-variant rounded-lg py-2.5 px-3 pr-12 font-body-md text-body-md focus:border-primary focus:bg-white transition-all" />
             <button type="button" class="absolute right-3 top-1/2 -translate-y-1/2 text-outline hover:text-primary"
-                    (click)="showNew = !showNew">
-              <span class="material-symbols-outlined">{{ showNew ? 'visibility_off' : 'visibility' }}</span>
+                    (click)="showNew.update(v => !v)">
+              <span class="material-symbols-outlined">{{ showNew() ? 'visibility_off' : 'visibility' }}</span>
             </button>
           </div>
         </div>
         <div class="space-y-1">
           <label class="font-label-sm text-label-sm text-on-surface-variant block">Confirmar nueva contraseña</label>
           <div class="relative">
-            <input [type]="showConfirm ? 'text' : 'password'" [(ngModel)]="cpConfirm" name="cpConfirm" required
+            <input [type]="showConfirm() ? 'text' : 'password'" [(ngModel)]="cpConfirm" name="cpConfirm" required
                    class="w-full bg-surface-container-low border border-outline-variant rounded-lg py-2.5 px-3 pr-12 font-body-md text-body-md focus:border-primary focus:bg-white transition-all" />
             <button type="button" class="absolute right-3 top-1/2 -translate-y-1/2 text-outline hover:text-primary"
-                    (click)="showConfirm = !showConfirm">
-              <span class="material-symbols-outlined">{{ showConfirm ? 'visibility_off' : 'visibility' }}</span>
+                    (click)="showConfirm.update(v => !v)">
+              <span class="material-symbols-outlined">{{ showConfirm() ? 'visibility_off' : 'visibility' }}</span>
             </button>
           </div>
         </div>
         <div class="flex flex-col-reverse sm:flex-row justify-end gap-2 pt-sm border-t border-outline/10">
           <button type="button"
                   class="border border-outline/20 px-md py-2.5 rounded-lg font-label-md text-label-md hover:bg-surface-container transition-colors w-full sm:w-auto"
-                  (click)="showChangePassword = false">Cancelar</button>
+                  (click)="showChangePassword.set(false)">Cancelar</button>
           <button type="submit"
                   class="bg-primary text-on-primary px-md py-2.5 rounded-lg font-label-md text-label-md hover:bg-primary/90 transition-colors flex items-center justify-center gap-2 disabled:opacity-60 w-full sm:w-auto"
                   [disabled]="cpSaving()">
@@ -182,39 +184,39 @@ export class PerfilComponent {
   });
 
   // Datos extendidos del docente (teléfono, especialización, etc.) — leídos en tiempo real de Firestore
-  private readonly _perfilExt = signal<PerfilExtendido | null>(null);
-  readonly perfilExt = this._perfilExt.asReadonly();
+  private readonly perfilDoc = toSignal(
+    toObservable(this.authService.authState).pipe(
+      map((state) => state.user?.uid ?? null),
+      distinctUntilChanged(),
+      switchMap((uid) =>
+        uid ? docData(doc(this.firestore, `usuarios/${uid}`)) : of(null)
+      )
+    ),
+    { initialValue: null }
+  );
+
+  readonly perfilExt = computed<PerfilExtendido | null>(() => {
+    const data = this.perfilDoc() as Record<string, any> | null | undefined;
+    if (!data) return null;
+    return {
+      telefono: data['telefono'] ?? '',
+      especializacion: data['especializacion'] ?? '',
+      fechaNacimiento: data['fechaNacimiento'] ?? '',
+      foto: data['foto'] ?? '',
+    };
+  });
 
   // Change password
-  showChangePassword = false;
+  readonly showChangePassword = signal(false);
   cpCurrent = '';
   cpNew = '';
   cpConfirm = '';
   cpFeedback = signal('');
   cpSuccess = signal(false);
   cpSaving = signal(false);
-  showCurrent = false;
-  showNew = false;
-  showConfirm = false;
-
-  constructor() {
-    // Cuando el estado de auth cambia, suscribirse al documento del usuario en Firestore
-    effect(() => {
-      const state = this.authService.authState();
-      const uid = state.user?.uid;
-      if (uid) {
-        const docRef = doc(this.firestore, `usuarios/${uid}`);
-        docData(docRef).subscribe((data: any) => {
-          this._perfilExt.set({
-            telefono: data?.telefono ?? '',
-            especializacion: data?.especializacion ?? '',
-            fechaNacimiento: data?.fechaNacimiento ?? '',
-            foto: data?.foto ?? '',
-          });
-        });
-      }
-    });
-  }
+  readonly showCurrent = signal(false);
+  readonly showNew = signal(false);
+  readonly showConfirm = signal(false);
 
   openChangePassword(): void {
     this.cpCurrent = '';
@@ -222,7 +224,7 @@ export class PerfilComponent {
     this.cpConfirm = '';
     this.cpFeedback.set('');
     this.cpSuccess.set(false);
-    this.showChangePassword = true;
+    this.showChangePassword.set(true);
   }
 
   async handleChangePassword(event?: Event): Promise<void> {
@@ -276,7 +278,7 @@ export class PerfilComponent {
       this.cpNew = '';
       this.cpConfirm = '';
       this.toast.show('Contraseña actualizada', 'success');
-      setTimeout(() => { this.showChangePassword = false; this.cpFeedback.set(''); }, 1500);
+      setTimeout(() => { this.showChangePassword.set(false); this.cpFeedback.set(''); }, 1500);
     } catch (err: any) {
       console.error(err);
       if (err.code === 'auth/wrong-password' || err.code === 'auth/invalid-credential') {

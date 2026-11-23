@@ -1,4 +1,5 @@
 import { Injectable, inject, signal } from '@angular/core';
+import { Router } from '@angular/router';
 import { Auth, signInWithEmailAndPassword, signOut, onAuthStateChanged, User } from '@angular/fire/auth';
 import { Firestore, doc, docData } from '@angular/fire/firestore';
 import { Observable, Subject, from, map, of, switchMap, Subscription, take } from 'rxjs';
@@ -15,6 +16,7 @@ export interface AuthState {
 export class AuthService {
   private readonly auth = inject(Auth);
   private readonly firestore = inject(Firestore);
+  private readonly router = inject(Router);
 
   private readonly state = signal<AuthState>({
     user: null,
@@ -116,6 +118,15 @@ export class AuthService {
     this._currentUid = null;
     await signOut(this.auth);
     this.state.set({ user: null, usuario: null, role: null });
+  }
+
+  /** Cierra sesión y recién después navega al login.
+   *  No usar `routerLink="/login"` junto al logout: la navegación
+   *  ocurriría antes de que `signOut` termine y el login redirigiría
+   *  de vuelta al dashboard. */
+  async logoutAndRedirect(): Promise<void> {
+    await this.logout();
+    await this.router.navigateByUrl('/login');
   }
 
   /** Carga los datos del usuario desde Firestore */

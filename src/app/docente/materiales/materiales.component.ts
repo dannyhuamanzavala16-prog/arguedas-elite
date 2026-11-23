@@ -34,9 +34,7 @@ type SortMode = 'recientes' | 'nombre';
           <select [ngModel]="formatFilter()" (ngModelChange)="formatFilter.set($event)"
                   class="w-full appearance-none bg-surface-container-low border border-outline-variant/30 rounded-lg text-body-sm font-body-sm px-4 py-2 pr-8 focus:border-primary focus:bg-white cursor-pointer outline-none transition-all">
             <option value="">Todos los formatos</option>
-            <option value="PDF">PDF</option>
             <option value="DOCX">Documentos</option>
-            <option value="ZIP">Comprimidos</option>
             <option value="MP4">Video</option>
           </select>
           <span class="material-symbols-outlined absolute right-2 top-1/2 -translate-y-1/2 pointer-events-none text-on-surface-variant text-[18px]">expand_more</span>
@@ -163,9 +161,11 @@ export class MaterialesComponent {
       document.body.appendChild(a);
       a.click();
       document.body.removeChild(a);
-      URL.revokeObjectURL(objectUrl);
+      // Revocar con demora: algunos navegadores cancelan la descarga si se revoca al instante
+      setTimeout(() => URL.revokeObjectURL(objectUrl), 1000);
     } catch {
-      window.open(mat.url, '_blank', 'noopener');
+      // Sin blob (CORS): dejar que el navegador resuelva la URL directamente
+      window.location.assign(mat.url);
     } finally {
       this.downloadingId.set(null);
     }

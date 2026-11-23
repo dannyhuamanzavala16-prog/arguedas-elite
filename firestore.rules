@@ -1,20 +1,53 @@
 rules_version = '2';
+
 service cloud.firestore {
   match /databases/{database}/documents {
-    match /usuarios/{document=**} {
-      allow read, write: if request.auth != null;
+
+    function signedIn() {
+      return request.auth != null;
     }
+
+    // Rol del usuario autenticado, leído de su perfil en `usuarios/{uid}`.
+    function role() {
+      return get(/databases/$(database)/documents/usuarios/$(request.auth.uid)).data.role;
+    }
+
+    function isAdmin() {
+      return signedIn() && role() == 'admin';
+    }
+
+    function isDocente() {
+      return signedIn() && role() == 'docente';
+    }
+
+    // Perfiles: cada usuario puede leer el suyo y actualizarlo; el admin gestiona todos.
+    match /usuarios/{uid} {
+      allow read: if signedIn();
+      allow create, update: if isAdmin() || request.auth.uid == uid;
+      allow delete: if isAdmin();
+    }
+
+    // Datos académicos: lectura para cualquier usuario autenticado, escritura solo admin.
     match /estudiantes/{document=**} {
-      allow read, write: if request.auth != null;
+      allow read: if signedIn();
+      allow write: if isAdmin();
     }
+
     match /docentes/{document=**} {
-      allow read, write: if request.auth != null;
+      allow read: if signedIn();
+      allow write: if isAdmin();
     }
+
+    // Materiales: el docente solo consulta; el admin sube y borra.
     match /materiales/{document=**} {
-      allow read, write: if request.auth != null;
+      allow read: if signedIn();
+      allow write: if isAdmin();
     }
+
+    // Asistencias: el docente registra; el admin también puede.
     match /asistencias/{document=**} {
-      allow read, write: if request.auth != null;
+      allow read: if signedIn();
+      allow write: if isAdmin() || isDocente();
     }
   }
 }

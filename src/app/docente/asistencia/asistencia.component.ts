@@ -2,6 +2,7 @@ import { Component, computed, inject, signal } from '@angular/core';
 import { FormsModule } from '@angular/forms';
 import { AsistenciaService } from '../services/asistencia.service';
 import { ToastService } from '../../shared/components/toast/toast.service';
+import { ConfirmService } from '../../shared/components/confirm/confirm.service';
 
 @Component({
   selector: 'app-asistencia',
@@ -14,15 +15,26 @@ import { ToastService } from '../../shared/components/toast/toast.service';
         <div>
           <h1 class="font-headline-lg text-headline-md md:text-headline-lg text-primary tracking-tight font-bold">Registro de Asistencia</h1>
         </div>
-        <div class="flex w-full md:w-auto">
+        <div class="flex flex-col sm:flex-row items-stretch sm:items-center gap-sm w-full md:w-auto">
+          <span
+            class="hidden sm:flex items-center justify-center gap-1 font-label-sm text-label-sm px-2"
+            [class.text-tertiary]="service.syncStatus() === 'guardado'"
+            [class.text-on-surface-variant]="service.syncStatus() === 'sincronizando'"
+            [class.text-error]="service.syncStatus() === 'error'"
+          >
+            <span class="material-symbols-outlined text-[16px]">
+              {{ service.syncStatus() === 'guardado' ? 'cloud_done' : service.syncStatus() === 'sincronizando' ? 'cloud_sync' : 'cloud_off' }}
+            </span>
+            {{ service.syncStatus() === 'guardado' ? 'Guardado' : service.syncStatus() === 'sincronizando' ? 'Guardando…' : 'Error al guardar' }}
+          </span>
           <button class="w-full md:w-auto px-md py-sm bg-primary text-on-primary font-label-md text-label-md rounded-lg hover:bg-primary/90 transition-all shadow-md flex items-center justify-center gap-xs disabled:opacity-60 disabled:cursor-not-allowed active:scale-95"
-                  (click)="guardar()" [disabled]="isSaving" id="saveBtn">
-            @if (!isSaving) {
+                  (click)="guardar()" [disabled]="isSaving()">
+            @if (!isSaving()) {
               <span class="material-symbols-outlined text-[18px]" data-icon="save">save</span>
             } @else {
               <span class="material-symbols-outlined text-[18px] animate-spin" data-icon="sync">sync</span>
             }
-            {{ isSaving ? 'Guardando...' : 'Guardar Asistencia' }}
+            {{ isSaving() ? 'Guardando...' : 'Guardar Asistencia' }}
           </button>
         </div>
       </div>
@@ -32,11 +44,11 @@ import { ToastService } from '../../shared/components/toast/toast.service';
         <div class="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-2">
           <h2 class="font-label-md text-label-md text-primary uppercase tracking-wider font-bold">Configuración de Clase</h2>
           <div class="flex flex-wrap gap-2 w-full sm:w-auto">
-            <button class="flex-1 sm:flex-none text-body-sm font-label-sm text-primary hover:bg-primary/5 px-2 py-1.5 rounded border border-primary/20 sm:border-transparent text-center" (click)="service.marcarTodos(true)">
+            <button class="flex-1 sm:flex-none text-body-sm font-label-sm text-primary hover:bg-primary/5 px-2 py-1.5 rounded border border-primary/20 sm:border-transparent text-center" (click)="marcarTodos(true)">
               Marcar todos presente
             </button>
             <span class="hidden sm:inline text-outline">|</span>
-            <button class="flex-1 sm:flex-none text-body-sm font-label-sm text-error hover:bg-error/5 px-2 py-1.5 rounded border border-error/20 sm:border-transparent text-center" (click)="service.marcarTodos(false)">
+            <button class="flex-1 sm:flex-none text-body-sm font-label-sm text-error hover:bg-error/5 px-2 py-1.5 rounded border border-error/20 sm:border-transparent text-center" (click)="marcarTodos(false)">
               Marcar todos ausente
             </button>
           </div>
@@ -128,7 +140,7 @@ import { ToastService } from '../../shared/components/toast/toast.service';
                 </tr>
               </thead>
               <tbody id="studentList">
-                @for (est of paginated(); track est.id) {
+                @for (est of filtered(); track est.id) {
                   <tr class="border-b border-outline-variant/10 hover:bg-surface-container-low transition-colors group">
                     <td class="px-md py-sm">
                       <div class="flex items-center gap-md">
@@ -197,7 +209,7 @@ import { ToastService } from '../../shared/components/toast/toast.service';
               </div>
             }
           } @else {
-            @for (est of paginated(); track est.id) {
+            @for (est of filtered(); track est.id) {
               <div class="p-md space-y-sm bg-surface-container-lowest">
                 <!-- Top row: Avatar & Info -->
                 <div class="flex items-center gap-md">
@@ -263,16 +275,15 @@ import { ToastService } from '../../shared/components/toast/toast.service';
   styles: [`
     .attendance-radio { cursor: pointer; }
     .scroll-hide::-webkit-scrollbar { display: none; }
-    .animate-spin { animation: spin 1s linear infinite; }
-    @keyframes spin { from { transform: rotate(0deg); } to { transform: rotate(360deg); } }
   `],
 })
 export class AsistenciaComponent {
   protected readonly service = inject(AsistenciaService);
   private readonly toast = inject(ToastService);
+  private readonly confirm = inject(ConfirmService);
 
-  searchQuery = signal('');
-  isSaving = false;
+  readonly searchQuery = signal('');
+  readonly isSaving = signal(false);
 
   readonly filtered = computed(() => {
     const q = this.searchQuery().toLowerCase().trim();
@@ -281,12 +292,9 @@ export class AsistenciaComponent {
     return list.filter((e) => {
       const nombre = (e.nombre || '').toLowerCase();
       const id = (e.id || '').toLowerCase();
-      const codigo = ((e as any).codigo || '').toLowerCase();
-      return nombre.includes(q) || id.includes(q) || codigo.includes(q);
+      return nombre.includes(q) || id.includes(q);
     });
   });
-
-  readonly paginated = computed(() => this.filtered());
 
   getInitials(name: string): string {
     if (!name) return '';
@@ -298,16 +306,37 @@ export class AsistenciaComponent {
       .toUpperCase();
   }
 
+  marcarTodos(presente: boolean): void {
+    if (presente) {
+      void this.service.marcarTodos(true);
+      return;
+    }
+
+    this.confirm
+      .confirm({
+        title: 'Marcar todos ausentes',
+        desc: 'Se marcará a todos los estudiantes de esta clase como ausentes. ¿Continuar?',
+        icon: 'person_off',
+        iconBg: 'bg-error-container',
+        iconColor: 'text-error',
+        confirmText: 'Marcar ausentes',
+        confirmClass: 'bg-error text-on-error hover:bg-error/90',
+      })
+      .subscribe((ok) => {
+        if (ok) void this.service.marcarTodos(false);
+      });
+  }
+
   async guardar(): Promise<void> {
-    this.isSaving = true;
+    this.isSaving.set(true);
     try {
-      await this.service.guardar();
-      this.toast.show('Asistencia guardada correctamente en la base de datos.', 'success');
-    } catch (err) {
-      console.error('Error al guardar la asistencia:', err);
-      this.toast.show('Error al guardar la asistencia. Intente de nuevo.', 'error');
+      const ok = await this.service.guardar();
+      this.toast.show(
+        ok ? 'Asistencia guardada correctamente.' : 'No se pudo guardar la asistencia. Revisá tu conexión.',
+        ok ? 'success' : 'error'
+      );
     } finally {
-      this.isSaving = false;
+      this.isSaving.set(false);
     }
   }
 }

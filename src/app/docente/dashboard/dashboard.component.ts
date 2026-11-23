@@ -24,7 +24,7 @@ import { AsistenciaService } from '../services/asistencia.service';
 
         <div class="bg-white p-md rounded-xl custom-shadow border-l-4 border-tertiary group hover:-translate-y-1 transition-transform">
           <div class="flex justify-between items-start mb-base">
-            <span class="text-on-surface-variant font-label-md uppercase tracking-wider">Promedio de Asistencia</span>
+            <span class="text-on-surface-variant font-label-md uppercase tracking-wider">Asistencia de la Clase</span>
             <div class="bg-tertiary/10 p-xs rounded-lg text-tertiary">
               <span class="material-symbols-outlined">verified</span>
             </div>
@@ -32,6 +32,9 @@ import { AsistenciaService } from '../services/asistencia.service';
           <div class="flex items-baseline gap-xs">
             <span class="font-headline-lg text-headline-lg text-primary">{{ promedioAsistencia() }}%</span>
           </div>
+          <p class="font-label-sm text-label-sm text-on-surface-variant mt-1">
+            {{ asistenciaService.curso() }} · Grupo {{ asistenciaService.grupo() }}
+          </p>
         </div>
 
         <div class="bg-white p-md rounded-xl custom-shadow border-l-4 border-secondary group hover:-translate-y-1 transition-transform">
@@ -52,7 +55,7 @@ import { AsistenciaService } from '../services/asistencia.service';
 export class DocenteDashboardComponent {
   private readonly estudiantesService = inject(EstudiantesService);
   private readonly materialesService = inject(MaterialesDocenteService);
-  private readonly asistenciaService = inject(AsistenciaService);
+  protected readonly asistenciaService = inject(AsistenciaService);
 
   readonly totalAlumnos = computed(() => this.estudiantesService.estudiantes().length);
   readonly promedioAsistencia = computed(() => this.asistenciaService.getStats().porcentaje);
