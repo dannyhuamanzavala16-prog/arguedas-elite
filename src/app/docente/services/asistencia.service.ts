@@ -73,6 +73,12 @@ export class AsistenciaService {
           return docData(docRef).pipe(
             map((data: any) => {
               const registrada = !!(data && data.estudiantes);
+              const letraGrupo = grupo.replace(/^Grupo\s*/i, '').trim();
+              const filtrados = allEsts.filter((e) => {
+                const salon = (e.salon || '').trim();
+                return salon.endsWith(`- ${letraGrupo}`) || salon.endsWith(` ${letraGrupo}`);
+              });
+              const base = filtrados.length > 0 ? filtrados : allEsts; // fallback si no hay match
               const lista: EstudianteAsistencia[] = registrada
                 ? (data.estudiantes as any[]).map((e) => ({
                     id: e.id,
@@ -80,7 +86,7 @@ export class AsistenciaService {
                     presente: e.presente === true ? true : e.presente === false ? false : null,
                     nota: e.nota ?? '',
                   }))
-                : allEsts.map((e) => ({
+                : base.map((e) => ({
                     id: e.codigo,
                     nombre: e.nombre,
                     presente: null,

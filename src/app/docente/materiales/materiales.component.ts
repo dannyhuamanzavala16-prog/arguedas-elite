@@ -2,8 +2,6 @@ import { Component, computed, inject, signal } from '@angular/core';
 import { FormsModule } from '@angular/forms';
 import { MaterialesDocenteService } from '../services/materiales.service';
 import { Material } from '../../shared/models/material.model';
-import { ConfirmService } from '../../shared/components/confirm/confirm.service';
-import { ToastService } from '../../shared/components/toast/toast.service';
 
 type SortMode = 'recientes' | 'nombre';
 
@@ -16,10 +14,9 @@ type SortMode = 'recientes' | 'nombre';
       <!-- Header -->
       <div class="flex flex-col md:flex-row justify-between items-start md:items-end mb-lg gap-md">
         <div>
-          <h3 class="font-headline-lg text-headline-lg text-primary mb-1 font-bold">Gestión de Materiales</h3>
-          <p class="font-body-sm text-body-sm text-on-surface-variant">{{ service.materiales().length }} archivo(s) en total</p>
+          <h3 class="font-headline-lg text-headline-lg text-primary mb-1 font-bold">Materiales</h3>
+          <p class="font-body-sm text-body-sm text-on-surface-variant">{{ service.materiales().length }} archivo(s) disponibles</p>
         </div>
-        <!-- Sin botón de subir — solo el administrador puede subir archivos -->
       </div>
 
       <!-- Filter Bar -->
@@ -79,8 +76,6 @@ type SortMode = 'recientes' | 'nombre';
                      title="Descargar"
                      (click)="downloadFile(mat)">{{ downloadingId() === mat.id ? 'progress_activity' : 'download' }}</button>
                 }
-                <button class="w-8 h-8 flex items-center justify-center rounded-lg text-on-surface-variant bg-surface-container-lowest/80 border border-outline/10 hover:bg-error/10 hover:text-error transition-colors material-symbols-outlined text-[18px]"
-                        (click)="confirmDelete(mat)" title="Eliminar">delete</button>
               </div>
 
               <div class="flex items-center justify-between mb-4">
@@ -113,8 +108,6 @@ type SortMode = 'recientes' | 'nombre';
 })
 export class MaterialesComponent {
   protected service = inject(MaterialesDocenteService);
-  private readonly confirm = inject(ConfirmService);
-  private readonly toast = inject(ToastService);
 
   searchQuery = signal('');
   formatFilter = signal('');
@@ -169,24 +162,5 @@ export class MaterialesComponent {
     } finally {
       this.downloadingId.set(null);
     }
-  }
-
-  confirmDelete(mat: Material): void {
-    if (!mat.id) return;
-    this.confirm.confirm({
-      title: 'Eliminar archivo',
-      desc: `¿Estás seguro de eliminar "${mat.nombre}"? Esta acción no se puede deshacer.`,
-      icon: 'delete', iconBg: 'bg-error-container', iconColor: 'text-error',
-      confirmText: 'Eliminar', confirmClass: 'bg-error text-on-error hover:bg-error/90',
-    }).subscribe(async (ok) => {
-      if (!ok) return;
-      try {
-        await this.service.eliminar(mat.id!, mat.storagePath);
-        this.toast.show('Archivo eliminado correctamente', 'success');
-      } catch (err) {
-        console.error('Error al eliminar:', err);
-        this.toast.show('Error al eliminar el material. Intente de nuevo.', 'error');
-      }
-    });
   }
 }
