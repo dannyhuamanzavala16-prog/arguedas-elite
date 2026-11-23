@@ -1,11 +1,13 @@
-<div class="min-h-screen flex flex-col items-center justify-center p-md overflow-hidden relative bg-login-gradient">
-  <!-- Atmospheric Background Elements -->
-  <div class="absolute top-[-10%] left-[-10%] w-[40%] h-[40%] rounded-full bg-tertiary-fixed opacity-10 blur-3xl animate-pulse"></div>
-  <div class="absolute bottom-[-10%] right-[-10%] w-[50%] h-[50%] rounded-full bg-primary-fixed-dim opacity-5 blur-3xl"></div>
+<div class="min-h-dvh flex flex-col items-center justify-center p-md relative bg-login-gradient">
+  <!-- Fondo atmosférico: aislado para que no rompa el scroll en pantallas bajas -->
+  <div class="absolute inset-0 overflow-hidden pointer-events-none" aria-hidden="true">
+    <div class="absolute top-[-10%] left-[-10%] w-[40%] h-[40%] rounded-full bg-tertiary-fixed opacity-10 blur-3xl animate-pulse"></div>
+    <div class="absolute bottom-[-10%] right-[-10%] w-[50%] h-[50%] rounded-full bg-primary-fixed-dim opacity-5 blur-3xl"></div>
+  </div>
 
   <main class="w-full max-w-md z-10">
     <!-- Login Card -->
-    <div class="bg-surface-container-lowest glass-effect rounded-xl shadow-2xl overflow-hidden transform transition-all duration-500 hover:scale-[1.01]">
+    <div class="glass-effect rounded-xl shadow-2xl overflow-hidden transform transition-all duration-500 hover:scale-[1.01]">
       <div class="px-md py-xl flex flex-col items-center">
         <!-- Logo & Brand -->
         <div class="mb-lg text-center">
@@ -26,60 +28,71 @@
         </div>
 
         <!-- Form -->
-        <form class="w-full space-y-md" (ngSubmit)="onSubmit()" #loginForm="ngForm">
-          <!-- Email -->
+        <form
+          class="w-full space-y-md"
+          (ngSubmit)="onSubmit(loginForm)"
+          #loginForm="ngForm"
+          novalidate
+        >
+          <!-- Usuario -->
           <div class="space-y-xs">
             <label class="font-label-md text-label-md text-on-surface-variant block px-xs" for="username">
               Usuario
             </label>
             <div class="relative">
-              <span class="material-symbols-outlined absolute left-4 top-1/2 -translate-y-1/2 text-outline">person</span>
+              <span class="material-symbols-outlined absolute left-4 top-1/2 -translate-y-1/2 text-outline" aria-hidden="true">person</span>
               <input
                 id="username"
                 name="username"
                 type="text"
+                required
                 [(ngModel)]="username"
                 autocomplete="username"
+                [attr.aria-invalid]="showError() ? 'true' : null"
                 class="w-full bg-surface-container-low border border-outline-variant rounded-lg py-3 pl-12 pr-4 font-body-md text-body-md transition-all focus:border-primary focus:bg-white"
                 (input)="hideError()"
               >
             </div>
           </div>
 
-          <!-- Password -->
+          <!-- Contraseña -->
           <div class="space-y-xs">
             <label class="font-label-md text-label-md text-on-surface-variant block px-xs" for="password">
               Contraseña
             </label>
             <div class="relative">
-              <span class="material-symbols-outlined absolute left-4 top-1/2 -translate-y-1/2 text-outline">lock</span>
+              <span class="material-symbols-outlined absolute left-4 top-1/2 -translate-y-1/2 text-outline" aria-hidden="true">lock</span>
               <input
-                #pwdInput
                 id="password"
                 name="password"
-                type="password"
+                [type]="showPassword() ? 'text' : 'password'"
+                required
                 [(ngModel)]="password"
+                autocomplete="current-password"
+                [attr.aria-invalid]="showError() ? 'true' : null"
                 class="w-full bg-surface-container-low border border-outline-variant rounded-lg py-3 pl-12 pr-12 font-body-md text-body-md transition-all focus:border-primary focus:bg-white"
                 (input)="hideError()"
               >
               <button
                 type="button"
-                class="absolute right-4 top-1/2 -translate-y-1/2 text-outline hover:text-primary transition-colors focus:outline-none"
-                (click)="togglePassword(pwdInput, visibilityIcon)"
+                class="absolute right-4 top-1/2 -translate-y-1/2 text-outline hover:text-primary transition-colors rounded-full focus:outline-none focus-visible:ring-2 focus-visible:ring-primary/40"
+                [attr.aria-label]="showPassword() ? 'Ocultar contraseña' : 'Mostrar contraseña'"
+                [attr.aria-pressed]="showPassword()"
+                (click)="togglePassword()"
               >
-                <span class="material-symbols-outlined" #visibilityIcon>visibility</span>
+                <span class="material-symbols-outlined" aria-hidden="true">{{ showPassword() ? 'visibility_off' : 'visibility' }}</span>
               </button>
             </div>
           </div>
 
           <!-- Error Message -->
-          @if (showError) {
+          @if (showError()) {
             <div
-              id="login-error"
+              role="alert"
               class="flex items-center gap-2 bg-error-container text-on-error-container font-label-sm text-label-sm px-4 py-3 rounded-lg mb-2 shake"
             >
-              <span class="material-symbols-outlined text-lg">error_outline</span>
-              <span>{{ errorMessage }}</span>
+              <span class="material-symbols-outlined text-lg" aria-hidden="true">error_outline</span>
+              <span>{{ errorMessage() }}</span>
             </div>
           }
 
@@ -87,9 +100,10 @@
           <div class="pt-sm">
             <button
               type="submit"
-              class="w-full bg-primary-container text-on-primary font-label-md text-label-md py-4 rounded-lg shadow-lg hover:bg-primary transition-all active:scale-[0.98] focus:ring-4 focus:ring-primary/20"
+              [disabled]="loginForm.invalid || isLoading()"
+              class="w-full bg-primary-container text-on-primary font-label-md text-label-md py-4 rounded-lg shadow-lg hover:bg-primary transition-all active:scale-[0.98] focus:ring-4 focus:ring-primary/20 disabled:opacity-60 disabled:cursor-not-allowed disabled:active:scale-100"
             >
-              Iniciar Sesión
+              {{ isLoading() ? 'Ingresando…' : 'Iniciar Sesión' }}
             </button>
           </div>
         </form>
@@ -101,7 +115,7 @@
       <p class="font-label-sm text-label-sm text-on-primary/60 tracking-wider">
         Academia Preuniversitaria Arguedas Elite
       </p>
-      <div class="mt-base flex justify-center space-x-sm opacity-50">
+      <div class="mt-base flex justify-center space-x-sm opacity-50" aria-hidden="true">
         <span class="w-1.5 h-1.5 bg-tertiary-fixed rounded-full"></span>
         <span class="w-1.5 h-1.5 bg-tertiary-fixed rounded-full"></span>
         <span class="w-1.5 h-1.5 bg-tertiary-fixed rounded-full"></span>

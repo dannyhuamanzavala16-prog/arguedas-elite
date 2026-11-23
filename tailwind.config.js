@@ -52,9 +52,6 @@ module.exports = {
         'on-secondary-fixed-variant': '#454747',
         'on-background': '#1a1c1c',
         'inverse-primary': '#bdc2ff',
-        // Login-specific
-        'bg-login': '#0a0e27',
-        'bg-login-secondary': '#1a1f4e',
       },
       borderRadius: {
         DEFAULT: '0.125rem',
@@ -111,20 +108,6 @@ module.exports = {
           '40px',
           { lineHeight: '48px', letterSpacing: '-0.02em', fontWeight: '700' },
         ],
-      },
-      backgroundImage: {
-        'login-gradient':
-          'linear-gradient(135deg, #0a0e27 0%, #1a1f4e 30%, #000666 70%, #0a0e27 100%)',
-      },
-      animation: {
-        shake: 'shake 0.5s ease-in-out',
-      },
-      keyframes: {
-        shake: {
-          '0%, 100%': { transform: 'translateX(0)' },
-          '10%, 30%, 50%, 70%, 90%': { transform: 'translateX(-4px)' },
-          '20%, 40%, 60%, 80%': { transform: 'translateX(4px)' },
-        },
       },
     },
   },

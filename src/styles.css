@@ -32,17 +32,24 @@ input:focus {
   box-shadow: 0 0 0 2px rgba(26, 35, 126, 0.2);
 }
 
-#login-error {
-  transition: opacity 0.3s ease, transform 0.3s ease;
-}
-
-#login-error.hidden {
-  display: none;
-}
-
-#login-error:not(.hidden) {
-  display: flex;
-  animation: shake 0.4s ease-in-out;
+@keyframes shake {
+  0%,
+  100% {
+    transform: translateX(0);
+  }
+  10%,
+  30%,
+  50%,
+  70%,
+  90% {
+    transform: translateX(-4px);
+  }
+  20%,
+  40%,
+  60%,
+  80% {
+    transform: translateX(4px);
+  }
 }
 
 /* ----- Panel Admin (admin.css) ----- */

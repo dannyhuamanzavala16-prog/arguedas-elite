@@ -1,6 +1,12 @@
-import { Component, HostListener } from '@angular/core';
+import {
+  AfterViewInit,
+  Component,
+  ElementRef,
+  HostListener,
+  signal,
+} from '@angular/core';
 import { Router } from '@angular/router';
-import { FormsModule } from '@angular/forms';
+import { FormsModule, NgForm } from '@angular/forms';
 import { AuthService } from '../services/auth.service';
 import { FirebaseError } from 'firebase/app';
 
@@ -11,50 +17,93 @@ import { FirebaseError } from 'firebase/app';
   templateUrl: './login.component.html',
   styleUrl: './login.component.css',
 })
-export class LoginComponent {
+export class LoginComponent implements AfterViewInit {
   username = '';
   password = '';
-  errorMessage = '';
-  showError = false;
 
-  // Parallax offsets
-  private moveX = 0;
-  private moveY = 0;
+  readonly isLoading = signal(false);
+  readonly showError = signal(false);
+  readonly errorMessage = signal('');
+  readonly showPassword = signal(false);
+
+  private blobs: HTMLElement[] = [];
+  private readonly reduceMotion =
+    typeof window !== 'undefined' &&
+    window.matchMedia('(prefers-reduced-motion: reduce)').matches;
 
   constructor(
-    private authService: AuthService,
-    private router: Router
-  ) {}
-
-  @HostListener('document:mousemove', ['$event'])
-  onMouseMove(e: MouseEvent): void {
-    this.moveX = (e.clientX - window.innerWidth / 2) * 0.01;
-    this.moveY = (e.clientY - window.innerHeight / 2) * 0.01;
-    document.querySelectorAll('.blur-3xl').forEach((el) => {
-      (el as HTMLElement).style.transform = `translate(${this.moveX}px, ${this.moveY}px)`;
+    private readonly authService: AuthService,
+    private readonly router: Router,
+    private readonly host: ElementRef<HTMLElement>,
+  ) {
+    // Si ya hay una sesión activa, el login no tiene sentido
+    void this.authService.isInitialized.then(() => {
+      if (this.authService.isLoggedIn()) {
+        void this.router.navigateByUrl(this.authService.getDefaultRoute());
+      }
     });
   }
 
-  onSubmit(): void {
+  ngAfterViewInit(): void {
+    this.blobs = Array.from(
+      this.host.nativeElement.querySelectorAll<HTMLElement>('.blur-3xl')
+    );
+  }
+
+  @HostListener('mousemove', ['$event'])
+  onMouseMove(event: MouseEvent): void {
+    if (this.reduceMotion || !this.blobs.length) {
+      return;
+    }
+
+    const x = (event.clientX - window.innerWidth / 2) * 0.01;
+    const y = (event.clientY - window.innerHeight / 2) * 0.01;
+
+    for (const blob of this.blobs) {
+      blob.style.transform = `translate3d(${x}px, ${y}px, 0)`;
+    }
+  }
+
+  onSubmit(form: NgForm): void {
+    if (form.invalid || this.isLoading()) {
+      return;
+    }
+
     this.hideError();
+    this.isLoading.set(true);
 
     const email = `${this.username.trim()}@arguedas.edu.pe`;
 
     this.authService.login(email, this.password).subscribe({
       next: (success) => {
+        this.isLoading.set(false);
+
         if (success) {
-          this.router.navigateByUrl(this.authService.getDefaultRoute());
+          void this.router.navigateByUrl(this.authService.getDefaultRoute());
+        } else {
+          this.showErrorMessage(
+            'Tu cuenta no tiene un perfil asignado. Contactá al administrador.'
+          );
         }
       },
       error: (err: FirebaseError) => {
-        console.error('[Login] Firebase error code:', err.code, err);
-        const msg = this.getFirebaseErrorMessage(err.code);
-        this.showErrorMessage(msg);
+        this.isLoading.set(false);
+        console.error('[Login] Firebase error code:', err?.code, err);
+        this.showErrorMessage(this.getFirebaseErrorMessage(err?.code));
       },
     });
   }
 
-  private getFirebaseErrorMessage(code: string): string {
+  togglePassword(): void {
+    this.showPassword.update((visible) => !visible);
+  }
+
+  hideError(): void {
+    this.showError.set(false);
+    this.errorMessage.set('');
+  }
+
+  private getFirebaseErrorMessage(code?: string): string {
     const messages: Record<string, string> = {
       'auth/user-not-found': 'Usuario no encontrado',
       'auth/wrong-password': 'Contraseña incorrecta',
@@ -63,34 +112,11 @@ export class LoginComponent {
       'auth/too-many-requests': 'Demasiados intentos. Intentá de nuevo más tarde',
       'auth/user-disabled': 'Esta cuenta ha sido deshabilitada',
     };
-    return messages[code] || 'Error de autenticación. Intentá de nuevo';
-  }
-
-  togglePassword(
-    inputEl: HTMLInputElement,
-    iconEl: HTMLElement
-  ): void {
-    const isPassword = inputEl.type === 'password';
-    inputEl.type = isPassword ? 'text' : 'password';
-    iconEl.innerText = isPassword ? 'visibility_off' : 'visibility';
-  }
-
-  hideError(): void {
-    this.showError = false;
-    this.errorMessage = '';
+    return (code && messages[code]) || 'Error de autenticación. Intentá de nuevo';
   }
 
   private showErrorMessage(message: string): void {
-    this.errorMessage = message;
-    this.showError = true;
-
-    // Trigger re-animation on repeated errors
-    const el = document.getElementById('login-error');
-    if (el) {
-      el.classList.remove('shake');
-      // Force reflow
-      void el.offsetWidth;
-      el.classList.add('shake');
-    }
+    this.errorMessage.set(message);
+    this.showError.set(true);
   }
 }
