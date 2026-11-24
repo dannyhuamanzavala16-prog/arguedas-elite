@@ -1,10 +1,21 @@
-import { Component, computed, inject } from '@angular/core';
+import { Component, computed, inject, signal } from '@angular/core';
+import { FormsModule } from '@angular/forms';
+import {
+  Auth,
+  updatePassword,
+  reauthenticateWithCredential,
+  EmailAuthProvider,
+  User,
+} from '@angular/fire/auth';
 import { AuthService } from '../../auth/services/auth.service';
 import { DashboardEstudianteService } from '../services/dashboard.service';
+import { ModalComponent } from '../../shared/components/modal/modal.component';
+import { ToastService } from '../../shared/components/toast/toast.service';
 
 @Component({
   selector: 'app-perfil-estudiante',
   standalone: true,
+  imports: [FormsModule, ModalComponent],
   template: `
     <div class="max-w-4xl mx-auto p-md md:p-lg space-y-lg">
       <!-- Profile Header Card -->
@@ -72,14 +83,90 @@ import { DashboardEstudianteService } from '../services/dashboard.service';
               <p class="font-body-md text-body-md font-semibold">{{ estudiante()?.estado || '—' }}</p>
             </div>
           </div>
+          <div class="mt-lg pt-md border-t border-outline-variant/10">
+            <button type="button" (click)="openChangePassword()"
+              class="flex items-center gap-2 px-md py-2 rounded-lg border border-primary/30 text-primary font-label-md text-label-md hover:bg-primary/5 transition-colors">
+              <span class="material-symbols-outlined text-[20px]">lock</span>
+              Cambiar contraseña
+            </button>
+          </div>
         </div>
       </div>
+
+      <!-- Change Password Modal -->
+      <app-modal [isOpen]="showChangePassword()" (close)="showChangePassword.set(false)">
+        <div class="p-md border-b border-outline/10 flex justify-between items-center">
+          <h3 class="font-headline-sm text-headline-sm text-on-surface">Cambiar Contraseña</h3>
+          <button class="w-9 h-9 flex items-center justify-center rounded-lg text-on-surface-variant hover:bg-surface-container transition-colors"
+            (click)="showChangePassword.set(false)">
+            <span class="material-symbols-outlined">close</span>
+          </button>
+        </div>
+        <form class="p-md space-y-md" (ngSubmit)="handleChangePassword($event)">
+          @if (cpFeedback()) {
+            <div class="text-body-sm font-body-sm text-center rounded-lg px-4 py-2"
+              [class.text-green-800]="cpSuccess()" [class.bg-green-100]="cpSuccess()"
+              [class.text-red-800]="!cpSuccess()" [class.bg-red-100]="!cpSuccess()">
+              {{ cpFeedback() }}
+            </div>
+          }
+          <div class="space-y-1">
+            <label class="font-label-sm text-label-sm text-on-surface-variant block">Contraseña actual</label>
+            <div class="relative">
+              <input [type]="showCurrent() ? 'text' : 'password'" [(ngModel)]="cpCurrent" name="cpCurrent" required
+                class="w-full bg-surface-container-low border border-outline-variant rounded-lg py-2.5 px-3 pr-12 font-body-md text-body-md focus:border-primary focus:bg-white transition-all" />
+              <button type="button" class="absolute right-3 top-1/2 -translate-y-1/2 text-outline hover:text-primary"
+                (click)="showCurrent.update(v => !v)">
+                <span class="material-symbols-outlined">{{ showCurrent() ? 'visibility_off' : 'visibility' }}</span>
+              </button>
+            </div>
+          </div>
+          <div class="space-y-1">
+            <label class="font-label-sm text-label-sm text-on-surface-variant block">Nueva contraseña</label>
+            <div class="relative">
+              <input [type]="showNew() ? 'text' : 'password'" [(ngModel)]="cpNew" name="cpNew" required
+                class="w-full bg-surface-container-low border border-outline-variant rounded-lg py-2.5 px-3 pr-12 font-body-md text-body-md focus:border-primary focus:bg-white transition-all" />
+              <button type="button" class="absolute right-3 top-1/2 -translate-y-1/2 text-outline hover:text-primary"
+                (click)="showNew.update(v => !v)">
+                <span class="material-symbols-outlined">{{ showNew() ? 'visibility_off' : 'visibility' }}</span>
+              </button>
+            </div>
+          </div>
+          <div class="space-y-1">
+            <label class="font-label-sm text-label-sm text-on-surface-variant block">Confirmar nueva contraseña</label>
+            <div class="relative">
+              <input [type]="showConfirm() ? 'text' : 'password'" [(ngModel)]="cpConfirm" name="cpConfirm" required
+                class="w-full bg-surface-container-low border border-outline-variant rounded-lg py-2.5 px-3 pr-12 font-body-md text-body-md focus:border-primary focus:bg-white transition-all" />
+              <button type="button" class="absolute right-3 top-1/2 -translate-y-1/2 text-outline hover:text-primary"
+                (click)="showConfirm.update(v => !v)">
+                <span class="material-symbols-outlined">{{ showConfirm() ? 'visibility_off' : 'visibility' }}</span>
+              </button>
+            </div>
+          </div>
+          <div class="flex flex-col-reverse sm:flex-row justify-end gap-2 pt-sm border-t border-outline/10">
+            <button type="button"
+              class="border border-outline/20 px-md py-2.5 rounded-lg font-label-md text-label-md hover:bg-surface-container transition-colors w-full sm:w-auto"
+              (click)="showChangePassword.set(false)">Cancelar</button>
+            <button type="submit"
+              class="bg-primary text-on-primary px-md py-2.5 rounded-lg font-label-md text-label-md hover:bg-primary/90 transition-colors flex items-center justify-center gap-2 disabled:opacity-60 w-full sm:w-auto"
+              [disabled]="cpSaving()">
+              @if (cpSaving()) {
+                <span class="material-symbols-outlined animate-spin" style="font-size:18px">progress_activity</span> Cambiando...
+              } @else {
+                Cambiar Contraseña
+              }
+            </button>
+          </div>
+        </form>
+      </app-modal>
     </div>
   `,
 })
 export class PerfilComponent {
+  private readonly auth = inject(Auth);
   private readonly authService = inject(AuthService);
   private readonly dashboard = inject(DashboardEstudianteService);
+  private readonly toast = inject(ToastService);
 
   readonly usuario = computed(() => this.authService.getUsuario());
   readonly estudiante = this.dashboard.estudiante;
@@ -88,4 +175,91 @@ export class PerfilComponent {
     const nombre = this.usuario()?.nombre ?? '';
     return nombre.split(' ').map((n) => n[0]).slice(0, 2).join('').toUpperCase() || 'E';
   });
+
+  // Change password
+  readonly showChangePassword = signal(false);
+  cpCurrent = '';
+  cpNew = '';
+  cpConfirm = '';
+  cpFeedback = signal('');
+  cpSuccess = signal(false);
+  cpSaving = signal(false);
+  readonly showCurrent = signal(false);
+  readonly showNew = signal(false);
+  readonly showConfirm = signal(false);
+
+  openChangePassword(): void {
+    this.cpCurrent = '';
+    this.cpNew = '';
+    this.cpConfirm = '';
+    this.cpFeedback.set('');
+    this.cpSuccess.set(false);
+    this.showChangePassword.set(true);
+  }
+
+  async handleChangePassword(event?: Event): Promise<void> {
+    if (event) {
+      event.preventDefault();
+      event.stopPropagation();
+    }
+    if (!this.cpCurrent || !this.cpNew || !this.cpConfirm) {
+      this.cpFeedback.set('Todos los campos son obligatorios.');
+      this.cpSuccess.set(false);
+      return;
+    }
+    if (this.cpNew.length < 8) {
+      this.cpFeedback.set('La nueva contraseña debe tener al menos 8 caracteres.');
+      this.cpSuccess.set(false);
+      return;
+    }
+    if (!/[a-z]/.test(this.cpNew) || !/[A-Z]/.test(this.cpNew) || !/\d/.test(this.cpNew)) {
+      this.cpFeedback.set('La contraseña debe incluir mayúscula, minúscula y número.');
+      this.cpSuccess.set(false);
+      return;
+    }
+    if (this.cpNew !== this.cpConfirm) {
+      this.cpFeedback.set('Las contraseñas nuevas no coinciden.');
+      this.cpSuccess.set(false);
+      return;
+    }
+    if (this.cpCurrent === this.cpNew) {
+      this.cpFeedback.set('La nueva contraseña debe ser diferente a la actual.');
+      this.cpSuccess.set(false);
+      return;
+    }
+
+    const currentUser: User | null = this.auth.currentUser;
+    if (!currentUser || !currentUser.email) {
+      this.cpFeedback.set('Sesión expirada. Volvé a iniciar sesión.');
+      this.cpSuccess.set(false);
+      return;
+    }
+
+    this.cpSaving.set(true);
+    try {
+      const credential = EmailAuthProvider.credential(currentUser.email, this.cpCurrent);
+      await reauthenticateWithCredential(currentUser, credential);
+      await updatePassword(currentUser, this.cpNew);
+
+      this.cpFeedback.set('Contraseña cambiada exitosamente.');
+      this.cpSuccess.set(true);
+      this.cpCurrent = '';
+      this.cpNew = '';
+      this.cpConfirm = '';
+      this.toast.show('Contraseña actualizada', 'success');
+      setTimeout(() => { this.showChangePassword.set(false); this.cpFeedback.set(''); }, 1500);
+    } catch (err: any) {
+      console.error(err);
+      if (err.code === 'auth/wrong-password' || err.code === 'auth/invalid-credential') {
+        this.cpFeedback.set('La contraseña actual es incorrecta.');
+      } else if (err.code === 'auth/too-many-requests') {
+        this.cpFeedback.set('Demasiados intentos. Esperá unos minutos.');
+      } else {
+        this.cpFeedback.set('Error al cambiar la contraseña. Intentá de nuevo.');
+      }
+      this.cpSuccess.set(false);
+    } finally {
+      this.cpSaving.set(false);
+    }
+  }
 }
