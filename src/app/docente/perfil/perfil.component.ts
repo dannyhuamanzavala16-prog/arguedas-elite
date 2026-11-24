@@ -9,7 +9,7 @@ import {
   EmailAuthProvider,
   User,
 } from '@angular/fire/auth';
-import { Firestore, doc, docData } from '@angular/fire/firestore';
+import { Firestore, doc, docData, updateDoc } from '@angular/fire/firestore';
 import { AuthService } from '../../auth/services/auth.service';
 import { ModalComponent } from '../../shared/components/modal/modal.component';
 import { ToastService } from '../../shared/components/toast/toast.service';
@@ -53,8 +53,26 @@ interface PerfilExtendido {
       <div class="grid grid-cols-1 lg:grid-cols-3 gap-gutter">
         <!-- Datos Personales -->
         <div class="lg:col-span-2 bg-surface-container-lowest rounded-xl border border-outline-variant/10 overflow-hidden">
-          <div class="px-md py-sm border-b border-outline-variant/10 bg-surface-container-low">
+          <div class="px-md py-sm border-b border-outline-variant/10 bg-surface-container-low flex justify-between items-center">
             <h3 class="font-headline-sm text-headline-sm text-primary">Datos Personales</h3>
+            @if (!editando()) {
+              <button type="button" (click)="startEditar()"
+                class="flex items-center gap-1 text-primary font-label-md text-label-md px-3 py-1.5 rounded-lg border border-primary/30 hover:bg-primary/5 transition-colors">
+                <span class="material-symbols-outlined text-[18px]">edit</span>
+                Editar
+              </button>
+            } @else {
+              <div class="flex gap-2">
+                <button type="button" (click)="cancelarEditar()"
+                  class="px-3 py-1.5 rounded-lg border border-outline/30 text-on-surface-variant font-label-md text-label-md hover:bg-surface-container transition-colors">
+                  Cancelar
+                </button>
+                <button type="button" (click)="guardarEditar()" [disabled]="editandoSaving()"
+                  class="px-3 py-1.5 rounded-lg bg-primary text-on-primary font-label-md text-label-md hover:bg-primary/90 transition-colors disabled:opacity-60">
+                  {{ editandoSaving() ? 'Guardando…' : 'Guardar' }}
+                </button>
+              </div>
+            }
           </div>
           <div class="p-md">
             <div class="grid grid-cols-1 md:grid-cols-2 gap-y-base gap-x-lg">
@@ -68,7 +86,12 @@ interface PerfilExtendido {
               </div>
               <div class="border-b border-surface-container py-base">
                 <p class="font-label-sm text-label-sm text-on-surface-variant uppercase mb-xs">Teléfono de Contacto</p>
-                <p class="font-body-md text-body-md font-semibold">{{ perfilExt()?.telefono || '—' }}</p>
+                @if (editando()) {
+                  <input type="tel" [(ngModel)]="editTelefono" name="editTelefono"
+                    class="w-full bg-surface-container-low border border-outline-variant rounded-lg py-2 px-3 font-body-md text-body-md focus:border-primary focus:bg-white outline-none" />
+                } @else {
+                  <p class="font-body-md text-body-md font-semibold">{{ perfilExt()?.telefono || '—' }}</p>
+                }
               </div>
               <div class="border-b border-surface-container py-base">
                 <p class="font-label-sm text-label-sm text-on-surface-variant uppercase mb-xs">Especialización</p>
@@ -76,7 +99,12 @@ interface PerfilExtendido {
               </div>
               <div class="border-b border-surface-container py-base">
                 <p class="font-label-sm text-label-sm text-on-surface-variant uppercase mb-xs">Fecha de Nacimiento</p>
-                <p class="font-body-md text-body-md font-semibold">{{ perfilExt()?.fechaNacimiento || '—' }}</p>
+                @if (editando()) {
+                  <input type="date" [(ngModel)]="editFechaNacimiento" name="editFechaNacimiento"
+                    class="w-full bg-surface-container-low border border-outline-variant rounded-lg py-2 px-3 font-body-md text-body-md focus:border-primary focus:bg-white outline-none" />
+                } @else {
+                  <p class="font-body-md text-body-md font-semibold">{{ perfilExt()?.fechaNacimiento || '—' }}</p>
+                }
               </div>
               <div class="border-b border-surface-container py-base">
                 <p class="font-label-sm text-label-sm text-on-surface-variant uppercase mb-xs">Rol</p>
@@ -205,6 +233,41 @@ export class PerfilComponent {
       foto: data['foto'] ?? '',
     };
   });
+
+  // Edición de datos personales (solo teléfono y fecha de nacimiento)
+  readonly editando = signal(false);
+  editTelefono = '';
+  editFechaNacimiento = '';
+  editandoSaving = signal(false);
+
+  startEditar(): void {
+    this.editTelefono = this.perfilExt()?.telefono ?? '';
+    this.editFechaNacimiento = this.perfilExt()?.fechaNacimiento ?? '';
+    this.editando.set(true);
+  }
+
+  cancelarEditar(): void {
+    this.editando.set(false);
+  }
+
+  async guardarEditar(): Promise<void> {
+    const uid = this.authService.authState().user?.uid;
+    if (!uid) return;
+    this.editandoSaving.set(true);
+    try {
+      await updateDoc(doc(this.firestore, `usuarios/${uid}`), {
+        telefono: this.editTelefono.trim(),
+        fechaNacimiento: this.editFechaNacimiento,
+      });
+      this.editando.set(false);
+      this.toast.show('Datos actualizados', 'success');
+    } catch (err) {
+      console.error(err);
+      this.toast.show('No se pudieron guardar los cambios.', 'error');
+    } finally {
+      this.editandoSaving.set(false);
+    }
+  }
 
   // Change password
   readonly showChangePassword = signal(false);

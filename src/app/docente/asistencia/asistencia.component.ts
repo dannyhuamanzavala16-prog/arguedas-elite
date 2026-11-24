@@ -21,7 +21,7 @@ import { ToastService } from '../../shared/components/toast/toast.service';
         </div>
         <div class="flex flex-col sm:flex-row items-stretch sm:items-center gap-sm w-full md:w-auto">
           <span
-            class="hidden sm:flex items-center justify-center gap-1 font-label-sm text-label-sm px-2"
+            class="flex items-center justify-center gap-1 font-label-sm text-label-sm px-2 sm:justify-start"
             [class.text-tertiary]="service.syncStatus() === 'guardado'"
             [class.text-amber-700]="service.syncStatus() === 'pendiente'"
             [class.text-on-surface-variant]="service.syncStatus() === 'sin cambios' || service.syncStatus() === 'guardando'"
