@@ -3,7 +3,7 @@ import { FormsModule } from '@angular/forms';
 import { ToastService } from '../../shared/components/toast/toast.service';
 import { MaterialesEstudianteService, MaterialEstudiante } from '../services/materiales.service';
 
-type FilterType = 'all' | 'PDF' | 'DOCX' | 'VIDEO' | 'MP4';
+type FilterType = 'all' | 'PDF' | 'DOCX' | 'VIDEO';
 
 @Component({
   selector: 'app-materiales-estudiante',
@@ -66,7 +66,7 @@ type FilterType = 'all' | 'PDF' | 'DOCX' | 'VIDEO' | 'MP4';
                 @if (currentFilter() !== 'all') {
                   <span class="w-1.5 h-1.5 rounded-full bg-white animate-pulse"></span>
                 }
-                {{ currentFilter() === 'all' ? 'Filtrar' : currentFilter() }}
+                {{ filterLabel() }}
               </button>
               @if (showFilter) {
                 <div class="filter-dropdown absolute right-0 top-full mt-1.5 w-44 bg-white border border-outline-variant/60 shadow-lg z-[60] overflow-hidden rounded-xl">
@@ -109,7 +109,9 @@ type FilterType = 'all' | 'PDF' | 'DOCX' | 'VIDEO' | 'MP4';
                       <p class="font-label-sm text-label-sm text-primary mb-md">{{ mat.curso }}</p>
                     </div>
                     <div class="flex items-center justify-between">
-                      <span class="font-body-sm text-body-sm text-on-surface-variant">Duración: {{ mat.duracion }}</span>
+                      @if (mat.duracion) {
+                        <span class="font-body-sm text-body-sm text-on-surface-variant">Duración: {{ mat.duracion }}</span>
+                      }
                       @if (mat.url) {
                         <button class="bg-primary text-on-primary px-md py-xs rounded-lg flex items-center gap-xs font-label-md text-label-md hover:bg-primary/90 transition-colors disabled:opacity-60"
                                 [disabled]="downloadingId() === mat.id"
@@ -198,10 +200,18 @@ export class MaterialesComponent {
   readonly filterOptions = [
     { value: 'all' as FilterType, label: 'Todos', dotColor: '#737373' },
     { value: 'PDF' as FilterType, label: 'PDF', dotColor: '#dc2626' },
-    { value: 'DOCX' as FilterType, label: 'Documento', dotColor: '#1a237e' },
-    { value: 'VIDEO' as FilterType, label: 'Video', dotColor: '#4f46e5' },
-    { value: 'MP4' as FilterType, label: 'MP4', dotColor: '#ea580c' },
+    { value: 'DOCX' as FilterType, label: 'Documentos', dotColor: '#1a237e' },
+    { value: 'VIDEO' as FilterType, label: 'Videos', dotColor: '#4f46e5' },
   ];
+
+  readonly filterLabel = computed(() => {
+    const f = this.currentFilter();
+    if (f === 'all') return 'Filtrar';
+    if (f === 'PDF') return 'PDF';
+    if (f === 'DOCX') return 'Documentos';
+    if (f === 'VIDEO') return 'Videos';
+    return 'Filtrar';
+  });
 
   readonly filtered = computed(() => {
     let list = this.materiales();

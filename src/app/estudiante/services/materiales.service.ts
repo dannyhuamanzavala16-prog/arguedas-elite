@@ -128,10 +128,9 @@ export class MaterialesEstudianteService implements OnDestroy {
     return fecha;
   }
 
-  private extractDuracion(m: Material): string {
-    // Intentar extraer duración del nombre o metadata
+  private extractDuracion(m: Material): string | undefined {
     const durMatch = m.nombre.match(/(\d+)\s*min/i);
-    if (durMatch) return `${durMatch[1]}:00 min`;
-    return m.tamano;
+    if (durMatch) return `${durMatch[1]} min`;
+    return undefined;
   }
 }
