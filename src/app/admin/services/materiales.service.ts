@@ -15,7 +15,16 @@ const BUCKET = 'materiales';
 export class MaterialesService extends FirestoreCollectionService<Material> {
   readonly materiales = toSignal(this.getAll(), { initialValue: [] as Material[] });
 
-  private readonly supabase: SupabaseClient = createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+  private supabaseClient: SupabaseClient | null = null;
+  private get supabase(): SupabaseClient {
+    if (!this.supabaseClient) {
+      if (!SUPABASE_URL || !SUPABASE_ANON_KEY) {
+        throw new Error('Supabase no está configurado: completá environment.supabase.url y anonKey.');
+      }
+      this.supabaseClient = createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+    }
+    return this.supabaseClient;
+  }
 
   constructor() {
     super('materiales');

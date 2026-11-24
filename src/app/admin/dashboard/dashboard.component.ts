@@ -32,8 +32,8 @@ function timeAgo(isoOrDate: string): string {
 
       <!-- Statistics Cards -->
       @if (loading()) {
-        <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-gutter animate-pulse">
-          @for (i of [1, 2, 3, 4]; track i) {
+        <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-gutter animate-pulse">
+          @for (i of [1, 2, 3]; track i) {
             <div class="bg-surface-container-lowest p-md rounded-xl border border-outline-variant shadow-sm h-32 flex flex-col justify-between">
               <div class="w-10 h-10 rounded-lg bg-on-surface/10"></div>
               <div class="space-y-2">
@@ -44,7 +44,7 @@ function timeAgo(isoOrDate: string): string {
           }
         </div>
       } @else {
-        <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-gutter">
+        <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-gutter">
           <div class="bg-surface-container-lowest p-md rounded-xl border border-outline-variant shadow-sm hover:shadow-md transition-shadow">
             <div class="w-10 h-10 rounded-lg bg-primary-container/10 flex items-center justify-center text-primary mb-sm">
               <span class="material-symbols-outlined">school</span>
@@ -59,14 +59,6 @@ function timeAgo(isoOrDate: string): string {
             </div>
             <h3 class="text-on-surface-variant text-label-md mb-xs">Total Docentes</h3>
             <p class="text-headline-sm font-bold text-on-surface">{{ totalDocentes() }}</p>
-          </div>
-
-          <div class="bg-surface-container-lowest p-md rounded-xl border border-outline-variant shadow-sm hover:shadow-md transition-shadow">
-            <div class="w-10 h-10 rounded-lg bg-tertiary-container/20 flex items-center justify-center text-tertiary mb-sm">
-              <span class="material-symbols-outlined">local_library</span>
-            </div>
-            <h3 class="text-on-surface-variant text-label-md mb-xs">Cursos Activos</h3>
-            <p class="text-headline-sm font-bold text-on-surface">{{ cursosUnicos() }}</p>
           </div>
 
           <div class="bg-surface-container-lowest p-md rounded-xl border border-outline-variant shadow-sm hover:shadow-md transition-shadow">
@@ -132,9 +124,6 @@ export class AdminDashboardComponent implements OnDestroy {
   protected readonly totalEstudiantes = computed(() => this.estudiantesService.estudiantes().length);
   protected readonly totalDocentes = computed(() => this.docentesService.docentes().length);
   protected readonly totalMateriales = computed(() => this.materialesService.materiales().length);
-  protected readonly cursosUnicos = computed(() =>
-    new Set(this.materialesService.materiales().map((m) => m.curso)).size
-  );
 
   protected readonly loading = signal(true);
   private readonly initSub: Subscription;
